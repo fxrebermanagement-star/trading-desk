@@ -1,7 +1,7 @@
 {
   "name": "Trading Cockpit",
   "short_name": "Cockpit",
-  "description": "Ruhiges Trading-Desk für EUR/USD — RöffÄää",
+  "description": "Info-only Desk für EUR/USD — RöffÄää",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

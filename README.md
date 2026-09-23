@@ -1,54 +1,46 @@
 # Trading Cockpit
 
-Ruhiges Tages- und Wochen-Cockpit für **EUR/USD** (RöffÄää).  
-Statische PWA: kein Broker, keine Signale/Orders — Desk, Chart (TradingView EURUSD), Kalender, News-Platzhalter, Journal und Wochenplan. Daten liegen in `localStorage` unter dem Schlüssel `trading-desk-v1`.
+Ruhiges **Info-only**-Desk für **EUR/USD** (RöffÄää). Statische PWA ohne Broker, Signale, Orders oder Handlungsanweisungen: Sessions, nächste Events, Chart, Kalender und News-Platzhalter.
 
 ## Lokal öffnen
-
-App-Ordner:
-
-```text
-trading-cockpit/app/
-```
-
-**Einfach (ohne Offline-SW):** Datei `app/index.html` im Browser öffnen (Doppelklick oder «Open File»). Journal und localStorage funktionieren so.
-
-**Empfohlen (PWA / Service Worker):** über einen lokalen HTTP-Server, damit Offline-Cache und Manifest greifen:
 
 ```bash
 cd trading-cockpit/app
 python3 -m http.server 8080
 ```
 
-Dann im Browser: [http://127.0.0.1:8080/](http://127.0.0.1:8080/)
-
-Optional «Zum Home-Bildschirm» / Installieren — Manifest und Icons liegen bereit.
+Dann: <http://127.0.0.1:8080/>
 
 ## Navigation
 
 | Tab | Inhalt |
 |-----|--------|
-| **Desk** | Datum/Uhrzeit Europe/Zurich, Session-Chips London/NY/Overlap, Ampel-Platzhalter, nächste Events |
-| **Chart** | TradingView-Embed EUR/USD (Anzeige only), TF: M10 / H1 / H4 / D1 — braucht Netz; offline ruhige Meldung |
-| **Kalender** | Beispiel High-Impact EUR/USD der aktuellen Woche + eigene Events |
-| **News** | Platzhalter-Karten + lokale Notizen |
-| **Journal** | Formular + Liste (localStorage) |
-| **Woche** | Wochenplan-Text + No-Trade-Tage |
+| **Desk** | Datum/Uhrzeit Europe/Zurich, Session-Chips London/NY/Overlap und nächste 3 High-Impact EUR/USD Events |
+| **Chart** | TradingView-Embed EUR/USD (Anzeige only), TF: M10 / H1 / H4 / D1 — Default **M10** |
+| **Kalender** | Primär TradingView Economic Calendar Widget, dark, Deutsch, EUR/USD, High-Importance |
+| **News** | Leichter Platzhalter (kein Signal-Kanal) |
 
-## Live
+## Kalender
 
-https://fxrebermanagement-star.github.io/trading-desk/
+Der Kalender-Tab lädt unabhängig vom optionalen Feed das TradingView Embed `embed-widget-events.js` mit:
 
-`start_url` und relative Pfade in Manifest/SW sind schon relativ (`./`), damit Pages unter Unterpfad funktioniert, wenn die App im Repo-Root der Pages-Site liegt.
+- `colorTheme: dark`
+- `locale: de`
+- `currencyFilter: EUR,USD`
+- `importanceFilter: 1` (High, damit der Kalender ruhig und relevant bleibt)
+
+Offline erscheint eine ruhige deutsche Meldung wie beim Chart. Der FF-Wochenfeed `https://nfs.faireconomy.media/ff_calendar_thisweek.json` wird nur optional für die kompakte **Nächste 3 Events**-Vorschau auf dem Desk versucht. Bei 429, CORS oder Netzfehler bleibt die letzte lokale Cache-Woche sichtbar; der Kalender selbst ist davon nicht abhängig.
+
+## Bewusst entfernt
+
+Ampel, Journal, Wochenplan, No-Trade-Checklisten, Playbook, Trade-Entry-Formulare, Risk-Sheets und manuelle Event-Eingabe sind bewusst nicht enthalten.
+
+## GitHub Pages
+
+Repo: `fxrebermanagement-star/trading-desk` — der Inhalt von `app/` ist als Pages-Root vorbereitet. Relative Pfade (`./`) funktionieren auch unter dem Projektpfad.
 
 ## Hinweise
 
-- Kalender-Events mit Label **Beispiel** sind fest im Code; eigene Events und Journal persistieren lokal.
-- Ampel steht bewusst auf **frei** (Platzhalter).
-- Kein Gendersprache; UI auf Deutsch.
-- `file://` blockiert oft den Service Worker — für Offline bitte lokalen Server nutzen.
-- Chart: freies TradingView-Widget (`FX:EURUSD`, Theme dark, Locale `de`, Zeitzone Europe/Zurich). Default-Intervall **M10**. Offline: Fallback-Text, kein Cache der TV-Assets.
-
-## Skizze
-
-Siehe [COCKPIT-SKIZZE.md](./COCKPIT-SKIZZE.md) für die MVP-Ideen (Risk-Blatt, Live-Feeds usw. später).
+- UI auf Deutsch; Zeitangaben in Europe/Zurich.
+- Chart und Kalender sind reine Drittanbieter-Anzeigen von TradingView.
+- Keine Finanzberatung, keine Handelsempfehlung.

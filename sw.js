@@ -1,5 +1,5 @@
 /* Service worker — cache app shell for offline use */
-const CACHE = "trading-cockpit-v2";
+const CACHE = "trading-cockpit-v4";
 const SHELL = [
   "./",
   "./index.html",
@@ -26,7 +26,7 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   const url = new URL(event.request.url);
-  // Never cache TradingView / third-party chart assets in the app shell
+  // Never cache TradingView / other third-party assets in the app shell.
   if (url.origin !== self.location.origin) {
     event.respondWith(fetch(event.request).catch(() => Response.error()));
     return;
@@ -36,9 +36,7 @@ self.addEventListener("fetch", (event) => {
       const fetched = fetch(event.request)
         .then((res) => {
           const copy = res.clone();
-          if (res.ok) {
-            caches.open(CACHE).then((c) => c.put(event.request, copy));
-          }
+          if (res.ok) caches.open(CACHE).then((c) => c.put(event.request, copy));
           return res;
         })
         .catch(() => cached);

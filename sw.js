@@ -1,5 +1,5 @@
 /* Service worker — cache app shell for offline use */
-const CACHE = "trading-cockpit-v4";
+const CACHE = "trading-cockpit-v5";
 const SHELL = [
   "./",
   "./index.html",

@@ -34,6 +34,31 @@
           <p id="desk-clock" class="clock-line">—</p>
         </div>
 
+        <div class="card quote-card">
+          <div class="quote-head">
+            <h2>EUR/USD Kurs</h2>
+            <span class="badge-feed">TradingView · Live</span>
+          </div>
+          <p class="hint disclaimer">
+            Aktueller Kurs inkl. Tagesbewegung · Anzeige only · keine Signale.
+          </p>
+          <div id="quote-widget-wrap" class="quote-widget-wrap">
+            <div id="quote-fallback" class="quote-fallback" hidden>
+              <p class="chart-fallback-title">Kurs offline</p>
+              <p class="hint">Kein Netz — der Live-Kurs braucht eine Verbindung. Später erneut öffnen.</p>
+            </div>
+            <div id="tv-quote" class="tradingview-widget-container quote-tv" hidden>
+              <div class="tradingview-widget-container__widget"></div>
+              <div class="tradingview-widget-copyright">
+                <a href="https://www.tradingview.com/symbols/EURUSD/?exchange=FX" rel="noopener nofollow" target="_blank">
+                  <span class="blue-text">EURUSD</span>
+                </a> by TradingView
+              </div>
+            </div>
+          </div>
+          <p class="hint" id="quote-updated">Stand · Europe/Zurich</p>
+        </div>
+
         <div class="card">
           <h2>Sessions</h2>
           <div class="session-chips" id="session-chips">
@@ -118,10 +143,28 @@
       <!-- NEWS -->
       <section id="view-news" class="view" data-view="news" aria-label="News" hidden>
         <div class="card">
-          <h2>News</h2>
-          <p class="hint">Leichter Platzhalter — kein Live-Feed, keine Signale. Fokus EUR/USD.</p>
+          <div class="kalender-head">
+            <h2>News</h2>
+            <span class="badge-feed">TradingView · EURUSD</span>
+          </div>
+          <p class="hint disclaimer">
+            Nachrichten zu EUR/USD · nur Information, keine Kauf-/Verkaufstipps.
+          </p>
+          <div id="news-widget-wrap" class="news-widget-wrap">
+            <div id="news-fallback" class="news-fallback" hidden>
+              <p class="chart-fallback-title">News offline</p>
+              <p class="hint">Kein Netz — der News-Feed braucht eine Verbindung. Später erneut öffnen.</p>
+            </div>
+            <div id="tv-news" class="tradingview-widget-container news-tv" hidden>
+              <div class="tradingview-widget-container__widget"></div>
+              <div class="tradingview-widget-copyright">
+                <a href="https://www.tradingview.com/symbols/EURUSD/?exchange=FX" rel="noopener nofollow" target="_blank">
+                  <span class="blue-text">EURUSD News</span>
+                </a> by TradingView
+              </div>
+            </div>
+          </div>
         </div>
-        <div id="news-cards" class="news-grid"></div>
       </section>
     </main>
 

@@ -1,0 +1,19 @@
+{
+  "name": "Trading Cockpit",
+  "short_name": "Cockpit",
+  "description": "Ruhiges Trading-Desk für EUR/USD — RöffÄää",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#141210",
+  "theme_color": "#1a1814",
+  "lang": "de",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

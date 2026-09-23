@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a1814" />
+  <meta name="description" content="Trading Cockpit — ruhiges Desk für EUR/USD" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Trading Cockpit</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+  <link rel="apple-touch-icon" href="icons/icon.svg" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <img src="icons/icon.svg" alt="" class="brand-icon" width="28" height="28" />
+        <div>
+          <h1>Trading Cockpit</h1>
+          <p class="subtitle">EUR/USD · RöffÄää</p>
+        </div>
+      </div>
+    </header>
+
+    <main id="views">
+      <!-- DESK -->
+      <section id="view-desk" class="view active" data-view="desk" aria-label="Desk">
+        <div class="card hero">
+          <p class="label">Heute</p>
+          <p id="desk-date" class="date-line">—</p>
+          <p id="desk-clock" class="clock-line">—</p>
+        </div>
+
+        <div class="card">
+          <h2>Sessions</h2>
+          <div class="session-chips" id="session-chips">
+            <button type="button" class="chip" data-session="london" title="ca. 09:00–17:30 MEZ">
+              <span class="chip-dot"></span> London <span class="chip-time">09–17:30</span>
+            </button>
+            <button type="button" class="chip" data-session="ny" title="ca. 14:30–21:00 MEZ">
+              <span class="chip-dot"></span> NY <span class="chip-time">14:30–21</span>
+            </button>
+            <button type="button" class="chip" data-session="overlap" title="ca. 14:30–17:30 MEZ">
+              <span class="chip-dot"></span> Overlap <span class="chip-time">14:30–17:30</span>
+            </button>
+          </div>
+          <p class="hint">Zeiten ungefähr, Europe/Zurich (MEZ/MESZ).</p>
+        </div>
+
+        <div class="card ampel-card">
+          <h2>Ampel</h2>
+          <div class="ampel" id="ampel">
+            <span class="ampel-light frei" aria-hidden="true"></span>
+            <div>
+              <p class="ampel-status">frei</p>
+              <p class="hint">Platzhalter — Regeln später.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Nächste Events</h2>
+          <ul class="event-list" id="desk-events"></ul>
+          <p class="hint">Beispiel-Daten · siehe Kalender</p>
+        </div>
+
+        <div class="card soft-link">
+          <p>Journal noch offen? Eintrag nachtragen.</p>
+          <button type="button" class="btn ghost" data-goto="journal">Zum Journal →</button>
+        </div>
+      </section>
+
+      <!-- KALENDER -->
+      <section id="view-kalender" class="view" data-view="kalender" aria-label="Kalender" hidden>
+        <div class="card">
+          <h2>Wirtschaftskalender</h2>
+          <p class="badge-beispiel">Beispiel · High-Impact EUR/USD · aktuelle Woche</p>
+          <ul class="event-list" id="kalender-list"></ul>
+        </div>
+
+        <div class="card">
+          <h2>Eigenes Event</h2>
+          <form id="form-event" class="form">
+            <label>Datum <input type="date" name="date" required /></label>
+            <label>Zeit (MEZ) <input type="time" name="time" value="14:30" required /></label>
+            <label>Titel <input type="text" name="title" placeholder="z. B. EZB Rede" required maxlength="80" /></label>
+            <label>Währung
+              <select name="currency">
+                <option value="EUR">EUR</option>
+                <option value="USD">USD</option>
+                <option value="EUR/USD">EUR/USD</option>
+              </select>
+            </label>
+            <button type="submit" class="btn primary">Speichern</button>
+          </form>
+          <ul class="event-list muted" id="custom-events"></ul>
+        </div>
+      </section>
+
+      <!-- NEWS -->
+      <section id="view-news" class="view" data-view="news" aria-label="News" hidden>
+        <div class="card">
+          <h2>News</h2>
+          <p class="hint">Live-Feed kommt später. Unten Platzhalter und lokale Notizen.</p>
+        </div>
+        <div id="news-cards" class="news-grid"></div>
+        <div class="card">
+          <h2>Meine Notizen</h2>
+          <textarea id="news-notes" rows="5" placeholder="Kurze Beobachtungen zum EUR/USD …"></textarea>
+          <button type="button" class="btn primary" id="btn-save-news">Notizen speichern</button>
+          <p class="hint saved-hint" id="news-saved" hidden>Gespeichert.</p>
+        </div>
+      </section>
+
+      <!-- JOURNAL -->
+      <section id="view-journal" class="view" data-view="journal" aria-label="Journal" hidden>
+        <div class="card">
+          <h2>Neuer Eintrag</h2>
+          <form id="form-journal" class="form">
+            <label>Datum <input type="date" name="date" required /></label>
+            <label>Session
+              <select name="session" required>
+                <option value="London">London</option>
+                <option value="NY">NY</option>
+                <option value="Overlap">Overlap</option>
+                <option value="Asien">Asien</option>
+                <option value="No-Trade">No-Trade</option>
+              </select>
+            </label>
+            <label>Setup <input type="text" name="setup" placeholder="z. B. London Open Break" maxlength="60" /></label>
+            <label>Richtung
+              <select name="richtung">
+                <option value="Long">Long</option>
+                <option value="Short">Short</option>
+                <option value="—">—</option>
+              </select>
+            </label>
+            <label>Größe <input type="text" name="groesse" placeholder="z. B. 0.5 Lot" maxlength="40" /></label>
+            <label>Risiko % <input type="text" name="risiko" placeholder="z. B. 0.5" maxlength="20" /></label>
+            <label>Ergebnis R <input type="text" name="ergebnis" placeholder="z. B. +1.5 oder −1" maxlength="20" /></label>
+            <label>Notiz <textarea name="notiz" rows="3" placeholder="Was behalten / streichen" maxlength="500"></textarea></label>
+            <button type="submit" class="btn primary">Eintrag speichern</button>
+          </form>
+        </div>
+        <div class="card">
+          <h2>Einträge</h2>
+          <ul class="journal-list" id="journal-list"></ul>
+          <p class="hint" id="journal-empty">Noch keine Einträge.</p>
+        </div>
+      </section>
+
+      <!-- WOCHE -->
+      <section id="view-woche" class="view" data-view="woche" aria-label="Woche" hidden>
+        <div class="card">
+          <h2>Wochenplan</h2>
+          <textarea id="wochenplan" rows="8" placeholder="Fokus-Setups, geplante Sessions, eine Regel der Woche …"></textarea>
+          <button type="button" class="btn primary" id="btn-save-woche">Plan speichern</button>
+          <p class="hint saved-hint" id="woche-saved" hidden>Gespeichert.</p>
+        </div>
+        <div class="card">
+          <h2>No-Trade-Tage</h2>
+          <div class="checklist" id="notrade-days">
+            <label><input type="checkbox" value="Mo" /> Montag</label>
+            <label><input type="checkbox" value="Di" /> Dienstag</label>
+            <label><input type="checkbox" value="Mi" /> Mittwoch</label>
+            <label><input type="checkbox" value="Do" /> Donnerstag</label>
+            <label><input type="checkbox" value="Fr" /> Freitag</label>
+          </div>
+          <p class="hint">Wird lokal gespeichert.</p>
+        </div>
+      </section>
+
+      <!-- CHART -->
+      <section id="view-chart" class="view" data-view="chart" aria-label="Chart" hidden>
+        <div class="card">
+          <h2>EUR/USD Chart</h2>
+          <p class="hint">Nur Anzeige · TradingView · keine Signale, keine Orders</p>
+          <div class="tf-row" role="group" aria-label="Zeitrahmen">
+            <button type="button" class="tf-btn active" data-tf="10">M10</button>
+            <button type="button" class="tf-btn" data-tf="60">H1</button>
+            <button type="button" class="tf-btn" data-tf="240">H4</button>
+            <button type="button" class="tf-btn" data-tf="D">D1</button>
+          </div>
+        </div>
+        <div class="card chart-card">
+          <div id="chart-wrap" class="chart-wrap">
+            <div id="chart-fallback" class="chart-fallback" hidden>
+              <p class="chart-fallback-title">Chart offline</p>
+              <p class="hint">Kein Netz — TradingView braucht eine Verbindung. Später erneut öffnen.</p>
+            </div>
+            <iframe
+              id="tv-chart"
+              title="EUR/USD Chart TradingView"
+              class="tv-iframe"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+              allow="fullscreen"
+            ></iframe>
+          </div>
+          <p class="hint chart-credit">Daten &amp; Widget: TradingView · Anzeige only</p>
+        </div>
+      </section>
+
+    </main>
+
+    <nav class="bottom-nav" aria-label="Hauptnavigation">
+      <button type="button" class="nav-btn active" data-goto="desk">
+        <span class="nav-ico" aria-hidden="true">◈</span>
+        <span>Desk</span>
+      </button>
+      <button type="button" class="nav-btn" data-goto="chart">
+        <span class="nav-ico" aria-hidden="true">⌒</span>
+        <span>Chart</span>
+      </button>
+      <button type="button" class="nav-btn" data-goto="kalender">
+        <span class="nav-ico" aria-hidden="true">▤</span>
+        <span>Kalender</span>
+      </button>
+      <button type="button" class="nav-btn" data-goto="news">
+        <span class="nav-ico" aria-hidden="true">◉</span>
+        <span>News</span>
+      </button>
+      <button type="button" class="nav-btn" data-goto="journal">
+        <span class="nav-ico" aria-hidden="true">✎</span>
+        <span>Journal</span>
+      </button>
+      <button type="button" class="nav-btn" data-goto="woche">
+        <span class="nav-ico" aria-hidden="true">▦</span>
+        <span>Woche</span>
+      </button>
+    </nav>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

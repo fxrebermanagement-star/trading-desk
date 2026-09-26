@@ -128,10 +128,17 @@
   }
 
   /* —— Desk: EUR/USD quote (TradingView Symbol Info: Kurs, Tagesveränderung, Tagesbereich) —— */
+  // TradingView embeds replace the __widget div with their iframe; restore it
+  // (first child, before the copyright line) so a remount renders in place.
   function resetWidgetHost(host) {
-    const w = host.querySelector(".tradingview-widget-container__widget");
-    host.querySelectorAll("script, iframe").forEach((n) => n.remove());
-    if (w) w.innerHTML = "";
+    host.querySelectorAll("script, iframe, style").forEach((n) => n.remove());
+    let w = host.querySelector(".tradingview-widget-container__widget");
+    if (!w) {
+      w = document.createElement("div");
+      w.className = "tradingview-widget-container__widget";
+    }
+    w.innerHTML = "";
+    host.insertBefore(w, host.firstChild);
   }
 
   function setQuoteOffline(offline) {

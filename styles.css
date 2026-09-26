@@ -375,3 +375,73 @@ main { padding: 12px 14px 8px; }
 .chart-fallback[hidden] { display: none !important; }
 .chart-fallback-title { margin: 0 0 8px; font-weight: 650; color: var(--accent); }
 .chart-credit { margin: 8px 4px 0; }
+
+/* Desk quote (TradingView Symbol Info: Kurs, Veränderung, Tagesbereich) */
+.quote-card .quote-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.quote-card .quote-head h2 { margin-bottom: 0; }
+.quote-widget-wrap {
+  position: relative;
+  width: 100%;
+  min-height: 120px;
+  margin-top: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #131722;
+}
+/* Symbol Info sets its own iframe height; keep the container auto-sized. */
+.quote-tv { width: 100%; height: auto; }
+.quote-tv .tradingview-widget-container__widget { height: auto; min-height: 90px; }
+.quote-tv iframe { display: block; }
+.quote-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  text-align: center;
+  background: var(--bg-elev);
+}
+.quote-fallback[hidden] { display: none !important; }
+.quote-widget-wrap.is-offline .quote-tv { display: none; }
+#quote-updated { margin-top: 8px; }
+
+/* News (TradingView timeline) */
+.news-widget-wrap {
+  position: relative;
+  width: 100%;
+  height: min(68vh, 620px);
+  min-height: 420px;
+  margin-top: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #131722;
+}
+.news-tv { width: 100%; height: 100%; }
+.news-tv .tradingview-widget-container__widget {
+  height: calc(100% - 28px);
+}
+.news-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  background: var(--bg-elev);
+}
+.news-fallback[hidden] { display: none !important; }
+.news-widget-wrap.is-offline .news-tv { display: none; }
+.news-feed-row { margin-top: 12px; }

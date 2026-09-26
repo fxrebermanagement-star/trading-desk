@@ -6,12 +6,17 @@
   const FF_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json";
   const CACHE_KEY = "trading-cockpit-ff-cache-v1";
   const TV_EVENTS_URL = "https://s3.tradingview.com/external-embedding/embed-widget-events.js";
+  const TV_QUOTE_URL = "https://s3.tradingview.com/external-embedding/embed-widget-symbol-info.js";
+  const TV_NEWS_URL = "https://s3.tradingview.com/external-embedding/embed-widget-timeline.js";
   const CURRENCIES = new Set(["EUR", "USD"]);
 
   // FF is deliberately optional: it only supplies the small Desk preview.
   let calendar = { events: [], fetchedAt: null, fromCache: false, error: null };
   let calendarWidgetMounted = false;
-  let calendarWidgetScript = null;
+  let quoteWidgetMounted = false;
+  let newsWidgetMounted = false;
+  let newsFeed = "eurusd"; // "eurusd" | "forex"
+  const VIEWS = ["desk", "chart", "kalender", "news"];
 
   function escapeHtml(s) {
     return String(s)
@@ -32,12 +37,27 @@
       b.classList.toggle("active", b.dataset.goto === name);
     });
     window.scrollTo(0, 0);
+    if (location.hash !== "#" + name) {
+      try { history.replaceState(null, "", "#" + name); } catch (e) { /* ignore */ }
+    }
+    if (name === "desk") mountQuote();
     if (name === "chart") mountChart();
     if (name === "kalender") mountEconomicCalendar();
+    if (name === "news") mountNews();
   }
 
   document.querySelectorAll("[data-goto]").forEach((el) => {
     el.addEventListener("click", () => showView(el.dataset.goto));
+  });
+
+  function viewFromHash() {
+    const h = (location.hash || "").replace("#", "").toLowerCase();
+    return VIEWS.indexOf(h) >= 0 ? h : null;
+  }
+
+  window.addEventListener("hashchange", () => {
+    const v = viewFromHash();
+    if (v) showView(v);
   });
 
   /* —— Time helpers (Europe/Zurich) —— */
@@ -105,6 +125,64 @@
       if (s === "overlap") on = inOverlap;
       chip.classList.toggle("active", on);
     });
+  }
+
+  /* —— Desk: EUR/USD quote (TradingView Symbol Info: Kurs, Tagesveränderung, Tagesbereich) —— */
+  function resetWidgetHost(host) {
+    const w = host.querySelector(".tradingview-widget-container__widget");
+    host.querySelectorAll("script, iframe").forEach((n) => n.remove());
+    if (w) w.innerHTML = "";
+  }
+
+  function setQuoteOffline(offline) {
+    const wrap = document.getElementById("quote-widget-wrap");
+    const fallback = document.getElementById("quote-fallback");
+    const host = document.getElementById("tv-quote");
+    if (!wrap || !fallback || !host) return;
+    wrap.classList.toggle("is-offline", offline);
+    fallback.hidden = !offline;
+    host.hidden = offline;
+  }
+
+  function setQuoteStatus(online) {
+    const el = document.getElementById("quote-updated");
+    if (!el) return;
+    el.textContent = online
+      ? "Live via TradingView · Tagesbereich in der Kennzahlenzeile (seitlich wischen)"
+      : "Kurs offline · Anzeige kehrt mit Verbindung zurück";
+  }
+
+  function mountQuote() {
+    const host = document.getElementById("tv-quote");
+    if (!host) return;
+    if (!navigator.onLine) {
+      setQuoteOffline(true);
+      setQuoteStatus(false);
+      return;
+    }
+    setQuoteOffline(false);
+    setQuoteStatus(true);
+    if (quoteWidgetMounted) return;
+
+    resetWidgetHost(host);
+    const script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src = TV_QUOTE_URL;
+    script.async = true;
+    script.textContent = JSON.stringify({
+      symbol: "FX:EURUSD",
+      width: "100%",
+      locale: "de_DE",
+      colorTheme: "dark",
+      isTransparent: true,
+    });
+    script.addEventListener("error", () => {
+      quoteWidgetMounted = false;
+      setQuoteOffline(true);
+      setQuoteStatus(false);
+    });
+    quoteWidgetMounted = true;
+    host.appendChild(script);
   }
 
   /* —— Optional Desk preview (Forex Factory weekly JSON + cache) —— */
@@ -261,26 +339,67 @@
       .join("");
   }
 
-  /* —— News (light placeholder) —— */
-  const newsPlaceholders = [
-    { tag: "Zentralbank", title: "EZB / Fed im Blick", body: "Platzhalter — Live-Feed folgt." },
-    { tag: "Inflation", title: "US-Inflationsdaten", body: "Platzhalter — nur EUR/USD-relevant." },
-    { tag: "Daten", title: "Arbeitsmarkt USA", body: "Platzhalter — NFP-Woche im Kalender." },
-    { tag: "Hinweis", title: "Info only", body: "Keine Signale, keine Orders, keine Empfehlungen." },
-  ];
-
-  function renderNews() {
-    const el = document.getElementById("news-cards");
-    if (!el) return;
-    el.innerHTML = newsPlaceholders
-      .map(
-        (n) =>
-          `<div class="card"><span class="news-tag">${n.tag}</span>` +
-          `<p class="news-title">${n.title}</p>` +
-          `<p class="hint" style="margin-top:4px">${n.body}</p></div>`
-      )
-      .join("");
+  /* —— News (TradingView Timeline: EUR/USD-Feed oder Forex-Markt) —— */
+  function setNewsOffline(offline) {
+    const wrap = document.getElementById("news-widget-wrap");
+    const fallback = document.getElementById("news-fallback");
+    const host = document.getElementById("tv-news");
+    if (!wrap || !fallback || !host) return;
+    wrap.classList.toggle("is-offline", offline);
+    fallback.hidden = !offline;
+    host.hidden = offline;
   }
+
+  function newsConfig(feed) {
+    const base = {
+      colorTheme: "dark",
+      isTransparent: true,
+      displayMode: "regular",
+      width: "100%",
+      height: "100%",
+      locale: "de_DE",
+    };
+    if (feed === "forex") return Object.assign({ feedMode: "market", market: "forex" }, base);
+    return Object.assign({ feedMode: "symbol", symbol: "FX:EURUSD" }, base);
+  }
+
+  function mountNews(force) {
+    const host = document.getElementById("tv-news");
+    if (!host) return;
+    document.querySelectorAll(".news-feed-btn").forEach((btn) => {
+      const on = btn.dataset.feed === newsFeed;
+      btn.classList.toggle("active", on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    if (!navigator.onLine) {
+      setNewsOffline(true);
+      return;
+    }
+    setNewsOffline(false);
+    if (newsWidgetMounted && !force) return;
+
+    resetWidgetHost(host);
+    const script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src = TV_NEWS_URL;
+    script.async = true;
+    script.textContent = JSON.stringify(newsConfig(newsFeed));
+    script.addEventListener("error", () => {
+      newsWidgetMounted = false;
+      setNewsOffline(true);
+    });
+    newsWidgetMounted = true;
+    host.appendChild(script);
+  }
+
+  document.querySelectorAll(".news-feed-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const next = btn.dataset.feed === "forex" ? "forex" : "eurusd";
+      if (next === newsFeed && newsWidgetMounted) return;
+      newsFeed = next;
+      mountNews(true);
+    });
+  });
 
   /* —— Chart (TradingView embed, display only) —— */
   let chartInterval = "10";
@@ -321,7 +440,7 @@
   function mountChart() {
     const iframe = document.getElementById("tv-chart");
     if (!iframe) return;
-    document.querySelectorAll(".tf-btn").forEach((btn) => {
+    document.querySelectorAll(".tf-btn[data-tf]").forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.tf === chartInterval);
     });
     if (!navigator.onLine) {
@@ -337,7 +456,7 @@
     }, 12000);
   }
 
-  document.querySelectorAll(".tf-btn").forEach((btn) => {
+  document.querySelectorAll(".tf-btn[data-tf]").forEach((btn) => {
     btn.addEventListener("click", () => {
       chartInterval = btn.dataset.tf || "10";
       mountChart();
@@ -381,39 +500,53 @@
     });
     script.addEventListener("error", () => {
       calendarWidgetMounted = false;
-      calendarWidgetScript = null;
       setCalendarOffline(true);
     });
     calendarWidgetMounted = true;
-    calendarWidgetScript = script;
     host.appendChild(script);
   }
 
   window.addEventListener("online", () => {
+    const deskView = document.getElementById("view-desk");
+    if (deskView && !deskView.hidden) mountQuote();
     const chartView = document.getElementById("view-chart");
     if (chartView && !chartView.hidden) mountChart();
     const calendarView = document.getElementById("view-kalender");
     if (calendarView && !calendarView.hidden) mountEconomicCalendar();
+    const newsView = document.getElementById("view-news");
+    if (newsView && !newsView.hidden) mountNews();
     fetchCalendar();
   });
 
   window.addEventListener("offline", () => {
+    // Quote/News get a fresh widget once the connection is back (no stale, empty iframe).
+    quoteWidgetMounted = false;
+    newsWidgetMounted = false;
+    const deskView = document.getElementById("view-desk");
+    if (deskView && !deskView.hidden) {
+      setQuoteOffline(true);
+      setQuoteStatus(false);
+    }
     const chartView = document.getElementById("view-chart");
     if (chartView && !chartView.hidden) setChartOffline(true);
     const calendarView = document.getElementById("view-kalender");
     if (calendarView && !calendarView.hidden) setCalendarOffline(true);
+    const newsView = document.getElementById("view-news");
+    if (newsView && !newsView.hidden) setNewsOffline(true);
   });
 
   /* —— Init —— */
   updateDeskClock();
   setInterval(updateDeskClock, 1000);
-  renderNews();
   renderDeskEvents();
   fetchCalendar();
+  const initialView = viewFromHash();
+  if (initialView && initialView !== "desk") showView(initialView);
+  else mountQuote();
 
   setInterval(() => renderDeskEvents(), 60000);
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js").catch(() => {});
+    navigator.serviceWorker.register("./sw.js", { updateViaCache: "none" }).catch(() => {});
   }
 })();

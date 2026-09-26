@@ -40,7 +40,7 @@
             <span class="badge-feed">TradingView · Live</span>
           </div>
           <p class="hint disclaimer">
-            Aktueller Kurs inkl. Tagesbewegung · Anzeige only · keine Signale.
+            Kurs, Tagesveränderung und Tagesbereich · nur Anzeige, keine Signale.
           </p>
           <div id="quote-widget-wrap" class="quote-widget-wrap">
             <div id="quote-fallback" class="quote-fallback" hidden>
@@ -56,7 +56,7 @@
               </div>
             </div>
           </div>
-          <p class="hint" id="quote-updated">Stand · Europe/Zurich</p>
+          <p class="hint" id="quote-updated">Live via TradingView</p>
         </div>
 
         <div class="card">
@@ -148,8 +148,12 @@
             <span class="badge-feed">TradingView · EURUSD</span>
           </div>
           <p class="hint disclaimer">
-            Nachrichten zu EUR/USD · nur Information, keine Kauf-/Verkaufstipps.
+            Nachrichten zu EUR/USD und zum Devisenmarkt · nur Information, keine Kauf-/Verkaufstipps.
           </p>
+          <div class="tf-row news-feed-row" role="group" aria-label="News-Feed">
+            <button type="button" class="tf-btn news-feed-btn active" data-feed="eurusd" aria-pressed="true">EUR/USD</button>
+            <button type="button" class="tf-btn news-feed-btn" data-feed="forex" aria-pressed="false">Forex</button>
+          </div>
           <div id="news-widget-wrap" class="news-widget-wrap">
             <div id="news-fallback" class="news-fallback" hidden>
               <p class="chart-fallback-title">News offline</p>

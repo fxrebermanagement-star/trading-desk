@@ -1,1 +1,1118 @@
-PLACEHOLDER_WILL_FAIL
+/* Trading Cockpit — info-only PWA. Watchlist, no orders.
+ * Chart symbols stay on the desk list. The scanner does not quote every
+ * FOREXCOM/TVC CFD, so the row reads a checked alias and shows a dash when
+ * that alias has no number. No price is invented.
+ *   FOREXCOM:SPXUSD  -> SP:SPX
+ *   FOREXCOM:GER40   -> TVC:DEU40
+ *   FOREXCOM:US30    -> DJ:DJI
+ *   TVC:USOIL        -> FX:USOIL
+ * Zinsen are the futures, not the yield. The scanner returned numbers for
+ * EUREX:FGBL1! (Euro-Bund) and CBOT:ZN1! (US 10-year T-Note).
+ * Yields are not shown. The watchlist is only the rows in MARKETS.
+ */
+(function () {
+  "use strict";
+
+  const TZ = "Europe/Zurich";
+  const FF_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json";
+  const CACHE_KEY = "trading-cockpit-ff-cache-v1";
+  const MARKET_KEY = "cockpit-market-v9";
+  const MARK_KEY = "cockpit-marks-v9";
+  const QUOTE_KEY = "cockpit-quotes-v9";
+  const TV_EVENTS_URL = "https://s3.tradingview.com/external-embedding/embed-widget-events.js";
+  const TV_NEWS_URL = "https://s3.tradingview.com/external-embedding/embed-widget-timeline.js";
+  const SCAN_URL = "https://scanner.tradingview.com/global/scan";
+  const SCAN_COLS = ["close", "change", "change_abs", "high", "low", "pricescale"];
+  const CURRENCIES = new Set(["USD", "EUR", "GBP", "JPY", "CAD", "AUD", "CHF", "CNY", "NZD"]);
+
+  const MARKETS = [
+    { id: "eurusd", group: "Währungen", name: "EUR/USD", key: "EUR", kind: "Devisenpaar", symbol: "FX:EURUSD", quote: "FX:EURUSD", exchange: "FX", tvName: "EURUSD", newsMarket: "forex" },
+    { id: "eurchf", group: "Währungen", name: "EUR/CHF", key: "EURCHF", kind: "Devisenpaar", symbol: "FX:EURCHF", quote: "FX:EURCHF", exchange: "FX", tvName: "EURCHF", newsMarket: "forex" },
+    { id: "usdchf", group: "Währungen", name: "USD/CHF", key: "USDCHF", kind: "Devisenpaar", symbol: "FX:USDCHF", quote: "FX:USDCHF", exchange: "FX", tvName: "USDCHF", newsMarket: "forex" },
+    { id: "jpn", group: "Indizes", name: "Japan 225", key: "JP225", kind: "Index", symbol: "TVC:NI225", quote: "TVC:NI225", exchange: "TVC", tvName: "NI225", newsMarket: "index" },
+    { id: "smi", group: "Indizes", name: "SMI", key: "SMI", kind: "Index", symbol: "SIX:SMI", quote: "SIX:SMI", exchange: "SIX", tvName: "SMI", newsMarket: "index" },
+    { id: "dax", group: "Indizes", name: "DAX", key: "DAX", kind: "Index", symbol: "FOREXCOM:GER40", quote: "TVC:DEU40", exchange: "FOREXCOM", tvName: "GER40", newsMarket: "index" },
+    { id: "us30", group: "Indizes", name: "Wall Street", key: "US30", kind: "Index", symbol: "FOREXCOM:US30", quote: "DJ:DJI", exchange: "FOREXCOM", tvName: "US30", newsMarket: "index" },
+    { id: "us500", group: "Indizes", name: "S&P 500", key: "US500", kind: "Index", symbol: "FOREXCOM:SPXUSD", quote: "SP:SPX", exchange: "FOREXCOM", tvName: "SPXUSD", newsMarket: "index" },
+    { id: "gold", group: "Rohstoffe", name: "Gold", key: "Gold", kind: "Gold", symbol: "TVC:GOLD", quote: "TVC:GOLD", exchange: "TVC", tvName: "GOLD", newsMarket: "futures" },
+    { id: "silver", group: "Rohstoffe", name: "Silber", key: "Silber", kind: "Silber", symbol: "TVC:SILVER", quote: "TVC:SILVER", exchange: "TVC", tvName: "SILVER", newsMarket: "futures" },
+    { id: "oil", group: "Rohstoffe", name: "Öl", key: "WTI", kind: "Öl", symbol: "TVC:USOIL", quote: "FX:USOIL", exchange: "TVC", tvName: "USOIL", newsMarket: "futures" },
+    { id: "bund", group: "Zinsen", name: "Bund-Future", key: "Bund", kind: "Future", symbol: "EUREX:FGBL1!", quote: "EUREX:FGBL1!", exchange: "EUREX", tvName: "FGBL1!", newsMarket: "futures" },
+    { id: "ust", group: "Zinsen", name: "US-Treasury-Future", key: "UST", kind: "Future", symbol: "CBOT:ZN1!", quote: "CBOT:ZN1!", exchange: "CBOT", tvName: "ZN1!", newsMarket: "futures" },
+    { id: "btc", group: "Krypto", name: "Bitcoin", key: "BTC", kind: "Krypto", symbol: "BITSTAMP:BTCUSD", quote: "BITSTAMP:BTCUSD", exchange: "BITSTAMP", tvName: "BTCUSD", newsMarket: "crypto" },
+    { id: "xrp", group: "Krypto", name: "XRP", key: "XRP", kind: "Krypto", symbol: "BITSTAMP:XRPUSD", quote: "BITSTAMP:XRPUSD", exchange: "BITSTAMP", tvName: "XRPUSD", newsMarket: "crypto" },
+  ];
+
+  let selectedId = "eurusd";
+  let calendar = { events: [], fetchedAt: null, fromCache: false, error: null };
+  let newsWidgetMounted = false;
+  let newsFor = null;
+  let newsFeed = "symbol";
+  let calendarWidgetMounted = false;
+  let calImportance = "high";
+  let chartInterval = "10";
+  let chartLoadTimer = null;
+  let quotes = Object.create(null);
+  let quoteLive = false;
+  let quoteStamp = null;
+  const marks = Object.create(null);
+  const VIEWS = ["desk", "chart", "kalender", "news"];
+
+  function marketById(id) {
+    return MARKETS.find((m) => m.id === id) || MARKETS[0];
+  }
+
+  function selected() {
+    return marketById(selectedId);
+  }
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function symbolHref(m) {
+    return "https://www.tradingview.com/symbols/" + encodeURIComponent(m.tvName) + "/?exchange=" + encodeURIComponent(m.exchange);
+  }
+
+  function numOrNull(v) {
+    return typeof v === "number" && Number.isFinite(v) ? v : null;
+  }
+
+  function loadStoredMarket() {
+    try {
+      const id = localStorage.getItem(MARKET_KEY);
+      if (id && MARKETS.some((m) => m.id === id)) selectedId = id;
+    } catch (e) { /* ignore */ }
+  }
+
+  function storeMarket() {
+    try { localStorage.setItem(MARKET_KEY, selectedId); } catch (e) { /* ignore */ }
+  }
+
+  function loadMarks() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(MARK_KEY) || "{}");
+      if (!raw || typeof raw !== "object") return;
+      MARKETS.forEach((m) => {
+        if (raw[m.id] === "up" || raw[m.id] === "down") marks[m.id] = raw[m.id];
+      });
+    } catch (e) { /* ignore */ }
+  }
+
+  function storeMarks() {
+    try { localStorage.setItem(MARK_KEY, JSON.stringify(marks)); } catch (e) { /* ignore */ }
+  }
+
+  function loadQuoteCache() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(QUOTE_KEY) || "null");
+      if (!raw || !raw.quotes || typeof raw.quotes !== "object") return;
+      quotes = Object.create(null);
+      Object.keys(raw.quotes).forEach((sym) => {
+        const q = raw.quotes[sym];
+        if (!q || typeof q !== "object") return;
+        quotes[sym] = {
+          close: numOrNull(q.close),
+          change: numOrNull(q.change),
+          changeAbs: numOrNull(q.changeAbs),
+          high: numOrNull(q.high),
+          low: numOrNull(q.low),
+          pricescale: numOrNull(q.pricescale),
+        };
+      });
+      quoteLive = false;
+      quoteStamp = raw.at || null;
+    } catch (e) { /* ignore */ }
+  }
+
+  function storeQuoteCache() {
+    try {
+      localStorage.setItem(QUOTE_KEY, JSON.stringify({ at: quoteStamp, quotes }));
+    } catch (e) { /* ignore */ }
+  }
+
+  /* —— Navigation —— */
+  function showView(name) {
+    document.querySelectorAll(".view").forEach((v) => {
+      const on = v.dataset.view === name;
+      v.classList.toggle("active", on);
+      v.hidden = !on;
+    });
+    document.querySelectorAll(".nav-btn").forEach((b) => {
+      b.classList.toggle("active", b.dataset.goto === name);
+    });
+    window.scrollTo(0, 0);
+    if (location.hash !== "#" + name) {
+      try { history.replaceState(null, "", "#" + name); } catch (e) { /* ignore */ }
+    }
+    if (name === "chart") mountChart();
+    if (name === "kalender") mountEconomicCalendar();
+    if (name === "news") mountNews();
+  }
+
+  document.querySelectorAll("[data-goto]").forEach((el) => {
+    el.addEventListener("click", () => showView(el.dataset.goto));
+  });
+
+  function viewFromHash() {
+    const h = (location.hash || "").replace("#", "").toLowerCase();
+    return VIEWS.indexOf(h) >= 0 ? h : null;
+  }
+
+  window.addEventListener("hashchange", () => {
+    const v = viewFromHash();
+    if (v) showView(v);
+  });
+
+  /* —— Time (Europe/Zurich plus the world row) —— */
+  function formatZurichDate(d) {
+    return new Intl.DateTimeFormat("de-CH", {
+      timeZone: TZ,
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }).format(d);
+  }
+
+  function zurichParts(d) {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: TZ,
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(d);
+    const pick = (type) => {
+      const v = parts.find((p) => p.type === type);
+      return v ? v.value : "00";
+    };
+    let h = pick("hour");
+    if (h === "24") h = "00";
+    return { h, m: pick("minute"), s: pick("second") };
+  }
+
+  function zurichMinutes(d) {
+    const p = zurichParts(d);
+    return Number(p.h) * 60 + Number(p.m);
+  }
+
+  function formatEventWhen(d) {
+    return new Intl.DateTimeFormat("de-CH", {
+      timeZone: TZ,
+      weekday: "short",
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(d);
+  }
+
+  function zurichWeekday(d) {
+    return new Intl.DateTimeFormat("en-US", { timeZone: TZ, weekday: "short" }).format(d);
+  }
+
+  function zurichYMD(d) {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: TZ,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(d);
+  }
+
+  function addDaysYMD(ymd, days) {
+    const bits = String(ymd).split("-").map(Number);
+    const dt = new Date(Date.UTC(bits[0], bits[1] - 1, bits[2]));
+    dt.setUTCDate(dt.getUTCDate() + days);
+    return dt.toISOString().slice(0, 10);
+  }
+
+  function weekBounds(now) {
+    const ymd = zurichYMD(now);
+    const mon0 = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 }[zurichWeekday(now)];
+    const start = addDaysYMD(ymd, -(mon0 == null ? 0 : mon0));
+    return { start, end: addDaysYMD(start, 6) };
+  }
+
+  function sessionState(now) {
+    const day = zurichWeekday(now);
+    if (day === "Sat" || day === "Sun") return { london: false, ny: false, overlap: false };
+    const mins = zurichMinutes(now);
+    const london = mins >= 9 * 60 && mins < 17 * 60 + 30;
+    const ny = mins >= 14 * 60 + 30 && mins < 21 * 60;
+    const overlap = london && ny;
+    return { london, ny, overlap };
+  }
+
+  function sessionPhrase(st) {
+    if (st.overlap) return "Overlap läuft";
+    if (st.london) return "London offen";
+    if (st.ny) return "New York offen";
+    return "Ruhig";
+  }
+
+  function radarSentence(st, now) {
+    if (st.overlap) return "Overlap: London und New York sind offen. Europe/Zurich.";
+    if (st.london) return "London ist offen. New York ist zu. Europe/Zurich.";
+    if (st.ny) return "New York ist offen. London ist zu. Europe/Zurich.";
+    const day = zurichWeekday(now);
+    if (day === "Sat" || day === "Sun") return "Ruhig: Wochenende. London und New York sind zu. Europe/Zurich.";
+    return "Ruhig: London und New York sind zu. Europe/Zurich.";
+  }
+
+  const deskDate = document.getElementById("desk-date");
+  const clockHm = document.getElementById("clock-hm");
+  const clockColon = document.getElementById("clock-colon");
+  const clockSec = document.getElementById("clock-sec");
+
+  function tickClockFace(p) {
+    if (clockHm) clockHm.textContent = p.h + ":" + p.m;
+    if (clockSec) {
+      clockSec.textContent = p.s;
+      clockSec.classList.remove("tick");
+      void clockSec.offsetWidth;
+      clockSec.classList.add("tick");
+    }
+    if (clockColon) {
+      clockColon.classList.remove("dim");
+      void clockColon.offsetWidth;
+      clockColon.classList.add("dim");
+    }
+  }
+
+  function updateWorldClocks(now) {
+    document.querySelectorAll(".world-item").forEach((el) => {
+      const zone = el.dataset.zone;
+      if (!zone) return;
+      let hm = "--:--";
+      let date = "";
+      try {
+        hm = new Intl.DateTimeFormat("de-CH", {
+          timeZone: zone,
+          hour: "2-digit",
+          minute: "2-digit",
+          hourCycle: "h23",
+        }).format(now);
+        date = new Intl.DateTimeFormat("de-CH", {
+          timeZone: zone,
+          weekday: "short",
+          day: "numeric",
+          month: "numeric",
+        }).format(now);
+      } catch (e) {
+        hm = "--:--";
+        date = "";
+      }
+      const hmEl = el.querySelector(".world-hm");
+      const dateEl = el.querySelector(".world-date");
+      if (hmEl) hmEl.textContent = hm;
+      if (dateEl) dateEl.textContent = date;
+    });
+  }
+
+  function updateLamps(st, now) {
+    document.querySelectorAll(".lamp-unit").forEach((unit) => {
+      const s = unit.dataset.session;
+      const on = (s === "london" && st.london) || (s === "ny" && st.ny) || (s === "overlap" && st.overlap);
+      unit.classList.toggle("on", on);
+    });
+    const radar = document.getElementById("radar-session");
+    if (radar) radar.textContent = radarSentence(st, now);
+  }
+
+  function nextHighEvent(now) {
+    const list = calendar.events || [];
+    const cutoff = now.getTime() - 15 * 60000;
+    for (let i = 0; i < list.length; i++) {
+      if (list[i].at.getTime() >= cutoff) return list[i];
+    }
+    return null;
+  }
+
+  function countdownPhrase(ms) {
+    if (ms <= 0) return "jetzt";
+    const min = Math.floor(ms / 60000);
+    if (min < 1) return "gleich";
+    if (min < 60) return "in " + min + " Min";
+    const h = Math.floor(min / 60);
+    const rem = min % 60;
+    if (h < 48) {
+      if (rem === 0) return "in " + h + " Std";
+      return "in " + h + " Std " + rem + " Min";
+    }
+    const days = Math.floor(min / 1440);
+    if (days <= 1) return "in 1 Tag";
+    return "in " + days + " Tagen";
+  }
+
+  function clipTitle(title) {
+    const s = String(title || "").trim();
+    if (s.length <= 36) return s;
+    return s.slice(0, 35) + "…";
+  }
+
+  function movePhrase(m) {
+    const q = quotes[m.quote];
+    const ch = q && q.change;
+    if (typeof ch !== "number" || !Number.isFinite(ch)) return "";
+    if (ch > 0) return m.name + " heute grün";
+    if (ch < 0) return m.name + " heute rot";
+    return m.name + " heute unverändert";
+  }
+
+  function renderFeld(now) {
+    const line = document.getElementById("feld-line");
+    if (!line) return;
+    const st = sessionState(now);
+    const bits = [sessionPhrase(st)];
+    const ev = nextHighEvent(now);
+    if (ev) {
+      const left = ev.at.getTime() - now.getTime();
+      bits.push(clipTitle(ev.title) + " " + countdownPhrase(left));
+    }
+    const move = movePhrase(selected());
+    if (move) bits.push(move);
+    line.textContent = bits.join(" · ");
+  }
+
+  function updateDeskClock() {
+    const now = new Date();
+    if (deskDate) deskDate.textContent = formatZurichDate(now);
+    tickClockFace(zurichParts(now));
+    updateWorldClocks(now);
+    const st = sessionState(now);
+    updateLamps(st, now);
+    renderFeld(now);
+  }
+
+  /* —— Watchlist —— */
+  function digitsFor(scale) {
+    const ps = Number(scale);
+    if (!Number.isFinite(ps) || ps < 1) return null;
+    const d = Math.round(Math.log10(ps));
+    if (d < 0 || d > 8) return null;
+    return d;
+  }
+
+  function formatNum(n, scale) {
+    if (typeof n !== "number" || !Number.isFinite(n)) return null;
+    const digits = digitsFor(scale);
+    const opts = digits == null
+      ? { maximumFractionDigits: 8 }
+      : { minimumFractionDigits: digits, maximumFractionDigits: digits };
+    return n.toLocaleString("de-CH", opts);
+  }
+
+  function formatPct(n) {
+    if (typeof n !== "number" || !Number.isFinite(n)) return null;
+    const body = Math.abs(n).toLocaleString("de-CH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (n > 0) return "+" + body + " %";
+    if (n < 0) return "−" + body + " %";
+    return body + " %";
+  }
+
+  function formatAbs(n, scale) {
+    if (typeof n !== "number" || !Number.isFinite(n)) return null;
+    const body = formatNum(Math.abs(n), scale);
+    if (body == null) return null;
+    if (n > 0) return "+" + body;
+    if (n < 0) return "−" + body;
+    return body;
+  }
+
+  function dirOf(n) {
+    if (typeof n !== "number" || !Number.isFinite(n) || n === 0) return "";
+    return n > 0 ? "up" : "down";
+  }
+
+  /* Position of the last price inside today's high-low. No bar when a number is missing or high equals low. */
+  function dayRangeRatio(close, high, low) {
+    if (typeof close !== "number" || typeof high !== "number" || typeof low !== "number") return null;
+    if (!Number.isFinite(close) || !Number.isFinite(high) || !Number.isFinite(low)) return null;
+    if (high === low) return null;
+    const ratio = (close - low) / (high - low);
+    if (!Number.isFinite(ratio)) return null;
+    return ratio;
+  }
+
+  /* Own note versus the day's sign. Only a contradiction is a sentence. Not a signal. */
+  function markConflictText(mark, change) {
+    if (mark !== "up" && mark !== "down") return "";
+    if (typeof change !== "number" || !Number.isFinite(change) || change === 0) return "";
+    if (mark === "up" && change < 0) return "Du hast steigend markiert, der Tag ist rot.";
+    if (mark === "down" && change > 0) return "Du hast sinkend markiert, der Tag ist grün.";
+    return "";
+  }
+
+  function showOrDash(text) {
+    return text == null || text === "" ? "–" : text;
+  }
+
+  function paintQuoteStatus() {
+    const el = document.getElementById("quote-status");
+    if (!el) return;
+    if (quoteLive && quoteStamp) {
+      el.textContent = "Kurse · TradingView-Scanner · " + formatEventWhen(new Date(quoteStamp)) + " · Europe/Zurich";
+      return;
+    }
+    if (quoteStamp) {
+      el.textContent = "Kurse · letzter Scanner-Stand " + formatEventWhen(new Date(quoteStamp)) + " · Europe/Zurich. Fehlende Zahl: Strich.";
+      return;
+    }
+    el.textContent = "Kurse · TradingView-Scanner. Fehlende Zahl: Strich, kein geschätzter Kurs.";
+  }
+
+  function paintWatch() {
+    document.querySelectorAll(".wl-row").forEach((row) => {
+      const m = marketById(row.dataset.id);
+      const q = quotes[m.quote] || null;
+      const on = m.id === selectedId;
+      row.classList.toggle("is-on", on);
+      row.setAttribute("aria-selected", on ? "true" : "false");
+      const chg = row.querySelector(".wl-chg");
+      const px = row.querySelector(".wl-px");
+      const hi = row.querySelector(".hl-h");
+      const lo = row.querySelector(".hl-l");
+      const change = q ? q.change : null;
+      const dir = dirOf(change);
+      if (chg) {
+        const pct = formatPct(change);
+        const abs = formatAbs(q ? q.changeAbs : null, q ? q.pricescale : null);
+        chg.textContent = showOrDash(pct) + "   " + showOrDash(abs);
+        chg.classList.remove("up", "down");
+        if (dir) chg.classList.add(dir);
+      }
+      if (px) {
+        px.textContent = showOrDash(formatNum(q ? q.close : null, q ? q.pricescale : null));
+        px.classList.remove("up", "down");
+        if (dir) px.classList.add(dir);
+      }
+      if (hi) hi.textContent = showOrDash(formatNum(q ? q.high : null, q ? q.pricescale : null));
+      if (lo) lo.textContent = showOrDash(formatNum(q ? q.low : null, q ? q.pricescale : null));
+      const range = row.querySelector(".wl-range");
+      const marker = row.querySelector(".wl-range-mark");
+      if (range && marker) {
+        const ratio = dayRangeRatio(q ? q.close : null, q ? q.high : null, q ? q.low : null);
+        if (ratio == null) {
+          range.hidden = true;
+          marker.style.left = "";
+          marker.classList.remove("up", "down");
+        } else {
+          const pct = Math.min(100, Math.max(0, ratio * 100));
+          range.hidden = false;
+          marker.style.left = pct.toFixed(2) + "%";
+          marker.classList.remove("up", "down");
+          if (dir) marker.classList.add(dir);
+        }
+      }
+      const note = marks[m.id] || "";
+      row.querySelectorAll(".mark-btn").forEach((btn) => {
+        const active = btn.dataset.mark === note;
+        btn.classList.toggle("on", active);
+        btn.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+      const abgleich = row.querySelector(".wl-abgleich");
+      if (abgleich) {
+        const conflict = markConflictText(note, change);
+        abgleich.textContent = conflict;
+        abgleich.hidden = !conflict;
+      }
+    });
+    paintQuoteStatus();
+  }
+
+  function toggleMark(id, dir) {
+    if (!MARKETS.some((m) => m.id === id)) return;
+    if (dir !== "up" && dir !== "down") return;
+    if (marks[id] === dir) delete marks[id];
+    else marks[id] = dir;
+    storeMarks();
+    paintWatch();
+  }
+
+  function applyMarketChrome() {
+    const m = selected();
+    const chartTitle = document.getElementById("chart-title");
+    if (chartTitle) chartTitle.textContent = m.name;
+    const chartKind = document.getElementById("chart-kind");
+    if (chartKind) chartKind.textContent = m.kind + " · nur Anzeige · TradingView · keine Signale, keine Orders";
+    const iframe = document.getElementById("tv-chart");
+    if (iframe) iframe.title = m.name + " Chart TradingView";
+    const badge = document.getElementById("news-badge");
+    if (badge) badge.textContent = m.tvName;
+    const newsCredit = document.getElementById("news-credit");
+    const newsCreditName = document.getElementById("news-credit-name");
+    if (newsCredit) newsCredit.href = symbolHref(m);
+    if (newsCreditName) newsCreditName.textContent = m.name;
+    paintWatch();
+    renderFeld(new Date());
+  }
+
+  function selectMarket(id) {
+    if (!MARKETS.some((m) => m.id === id)) return;
+    if (id === selectedId) return;
+    selectedId = id;
+    newsFeed = "symbol";
+    storeMarket();
+    applyMarketChrome();
+    const chart = document.getElementById("view-chart");
+    if (chart && !chart.hidden) mountChart();
+    const news = document.getElementById("view-news");
+    if (news && !news.hidden) mountNews(true);
+    else newsWidgetMounted = false;
+  }
+
+  function buildWatchlist() {
+    const host = document.getElementById("watchlist");
+    if (!host) return;
+    host.innerHTML = "";
+    let lastGroup = "";
+    MARKETS.forEach((m) => {
+      if (m.group !== lastGroup) {
+        const head = document.createElement("div");
+        head.className = "wl-head wl-head-" + (
+          m.group === "Währungen" ? "fx"
+          : m.group === "Indizes" ? "idx"
+          : m.group === "Rohstoffe" ? "cmd"
+          : m.group === "Zinsen" ? "rate"
+          : "crypto"
+        );
+        head.textContent = m.group;
+        host.appendChild(head);
+        lastGroup = m.group;
+      }
+      const row = document.createElement("div");
+      row.className = "wl-row";
+      row.dataset.id = m.id;
+      row.setAttribute("role", "option");
+      row.tabIndex = 0;
+      row.setAttribute("aria-label", m.name);
+      row.innerHTML =
+        '<div class="wl-main">' +
+          '<div class="wl-name"></div>' +
+          '<div class="wl-chg">–   –</div>' +
+          '<div class="wl-hl"><span class="hl-k" title="Hoch">H</span> <span class="hl-h">–</span>' +
+          '<span class="hl-k hl-l-k" title="Tief">T</span> <span class="hl-l">–</span></div>' +
+          '<div class="wl-range" hidden aria-hidden="true"><span class="wl-range-mark"></span></div>' +
+        "</div>" +
+        '<div class="wl-side">' +
+          '<div class="wl-px">–</div>' +
+          '<div class="wl-marks">' +
+            '<button type="button" class="mark-btn up" data-mark="up" aria-pressed="false">steigt</button>' +
+            '<button type="button" class="mark-btn down" data-mark="down" aria-pressed="false">sinkt</button>' +
+          "</div>" +
+          '<p class="wl-abgleich" hidden></p>' +
+        "</div>";
+      row.querySelector(".wl-name").textContent = m.name;
+      row.addEventListener("click", () => selectMarket(m.id));
+      row.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter" || ev.key === " ") {
+          ev.preventDefault();
+          selectMarket(m.id);
+        }
+      });
+      row.querySelectorAll(".mark-btn").forEach((btn) => {
+        btn.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          toggleMark(m.id, btn.dataset.mark);
+        });
+      });
+      host.appendChild(row);
+    });
+    applyMarketChrome();
+  }
+
+  function quoteFromRow(row) {
+    const d = (row && row.d) || [];
+    return {
+      close: numOrNull(d[0]),
+      change: numOrNull(d[1]),
+      changeAbs: numOrNull(d[2]),
+      high: numOrNull(d[3]),
+      low: numOrNull(d[4]),
+      pricescale: numOrNull(d[5]),
+    };
+  }
+
+  async function fetchQuotes() {
+    if (!navigator.onLine) {
+      quoteLive = false;
+      paintQuoteStatus();
+      return;
+    }
+    const tickers = [];
+    MARKETS.forEach((m) => {
+      if (tickers.indexOf(m.quote) < 0) tickers.push(m.quote);
+    });
+    try {
+      const res = await fetch(SCAN_URL, {
+        method: "POST",
+        cache: "no-store",
+        credentials: "omit",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symbols: { tickers }, columns: SCAN_COLS }),
+      });
+      if (!res.ok) {
+        quoteLive = false;
+        paintQuoteStatus();
+        return;
+      }
+      const data = await res.json();
+      const rows = (data && data.data) || [];
+      const next = Object.create(null);
+      rows.forEach((row) => {
+        if (row && row.s) next[row.s] = quoteFromRow(row);
+      });
+      quotes = next;
+      quoteLive = true;
+      quoteStamp = new Date().toISOString();
+      storeQuoteCache();
+      paintWatch();
+      renderFeld(new Date());
+    } catch (e) {
+      quoteLive = false;
+      paintQuoteStatus();
+    }
+  }
+
+  /* —— Optional high-impact preview —— */
+  function normalizeImpact(raw) {
+    const s = String(raw || "").trim().toLowerCase();
+    if (s === "high" || s === "red") return "High";
+    return raw;
+  }
+
+  function isHighImpact(raw) {
+    const s = String(raw || "").trim().toLowerCase();
+    return s === "high" || s === "red";
+  }
+
+  function parseFeed(rawList) {
+    if (!Array.isArray(rawList)) return [];
+    const out = [];
+    for (const row of rawList) {
+      const country = String(row.country || row.currency || "").toUpperCase();
+      if (!CURRENCIES.has(country) || !isHighImpact(row.impact)) continue;
+      const at = new Date(row.date);
+      if (Number.isNaN(at.getTime())) continue;
+      out.push({
+        id: at.toISOString() + "-" + country + "-" + row.title,
+        title: String(row.title || "Event").trim(),
+        currency: country,
+        impact: normalizeImpact(row.impact),
+        at,
+      });
+    }
+    out.sort((a, b) => a.at - b.at);
+    return out;
+  }
+
+  function loadCache() {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !Array.isArray(parsed.rows)) return null;
+      return parsed;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function saveCache(rows) {
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ fetchedAt: new Date().toISOString(), rows }));
+    } catch (e) { /* quota */ }
+  }
+
+  function applyEvents(events, meta) {
+    calendar = {
+      events,
+      fetchedAt: meta.fetchedAt || null,
+      fromCache: !!meta.fromCache,
+      error: meta.error || null,
+    };
+    renderDeskEvents();
+    renderWeekEvents();
+    renderFeld(new Date());
+  }
+
+  function setDeskSource(text) {
+    const el = document.getElementById("desk-events-source");
+    if (el) el.textContent = text;
+  }
+
+  async function fetchCalendar() {
+    if (!navigator.onLine) {
+      const cached = loadCache();
+      if (cached) {
+        applyEvents(parseFeed(cached.rows), { fetchedAt: cached.fetchedAt, fromCache: true });
+        setDeskSource("Optionaler Feed · Offline: lokale Cache-Daten.");
+      } else {
+        applyEvents([], { error: "offline" });
+        setDeskSource("Kalender nicht erreichbar.");
+      }
+      return;
+    }
+    try {
+      const res = await fetch(FF_URL, { cache: "no-cache", mode: "cors", credentials: "omit" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const rows = await res.json();
+      const events = parseFeed(rows);
+      saveCache(rows);
+      applyEvents(events, { fetchedAt: new Date().toISOString(), fromCache: false });
+      setDeskSource("Optionaler FF-Feed · aktualisiert " + formatEventWhen(new Date()) + " (Europe/Zurich). Für Details: Kalender.");
+    } catch (e) {
+      const cached = loadCache();
+      if (cached && Array.isArray(cached.rows)) {
+        applyEvents(parseFeed(cached.rows), { fetchedAt: cached.fetchedAt, fromCache: true, error: "feed" });
+        const t = cached.fetchedAt ? formatEventWhen(new Date(cached.fetchedAt)) : "—";
+        setDeskSource("Optionaler Feed · Cache-Fallback, Stand " + t + " (Europe/Zurich).");
+      } else {
+        applyEvents([], { error: "feed" });
+        setDeskSource("Kalender nicht erreichbar.");
+      }
+    }
+  }
+
+  function markKind(e, now) {
+    const diff = e.at.getTime() - now.getTime();
+    if (diff >= -15 * 60000 && diff <= 0) return "now";
+    if (diff > 0) return "upcoming";
+    return "past";
+  }
+
+  function eventLi(e, kind) {
+    const badge =
+      kind === "now"
+        ? '<span class="mark now">Jetzt</span>'
+        : kind === "next"
+          ? '<span class="mark next">Als Nächstes</span>'
+          : "";
+    const cls = kind === "now" || kind === "next" ? ' class="highlight"' : "";
+    return (
+      "<li" + cls + ">" +
+      '<span class="impact">High</span>' +
+      '<span class="ccy">' + escapeHtml(e.currency) + "</span>" +
+      badge +
+      escapeHtml(e.title) +
+      '<span class="event-meta">' + escapeHtml(formatEventWhen(e.at)) + " · Europe/Zurich</span>" +
+      "</li>"
+    );
+  }
+
+  function renderDeskEvents() {
+    const list = document.getElementById("desk-events");
+    if (!list) return;
+    const now = new Date();
+    const upcoming = (calendar.events || [])
+      .filter((e) => e.at.getTime() >= now.getTime() - 15 * 60000)
+      .slice(0, 3);
+    if (!upcoming.length) {
+      list.innerHTML = "<li>Keine anstehenden High-Impact-Termine aus dem optionalen Feed.</li>";
+      return;
+    }
+    list.innerHTML = upcoming
+      .map((e, i) => {
+        const base = markKind(e, now);
+        const kind = i === 0 && base === "upcoming" ? "next" : base;
+        return eventLi(e, kind);
+      })
+      .join("");
+  }
+
+  function renderWeekEvents() {
+    const list = document.getElementById("week-events");
+    const src = document.getElementById("week-events-source");
+    if (!list) return;
+    const hasEvents = calendar.events && calendar.events.length;
+    if (calendar.error && !hasEvents) {
+      list.innerHTML = "<li>Kalender nicht erreichbar.</li>";
+      if (src) src.textContent = "Kalender nicht erreichbar.";
+      return;
+    }
+    if (!calendar.fetchedAt && !hasEvents) {
+      list.innerHTML = "<li>Kalender wird geladen…</li>";
+      if (src) src.textContent = "Kalender wird geladen…";
+      return;
+    }
+    const bounds = weekBounds(new Date());
+    const week = (calendar.events || []).filter((e) => {
+      const ymd = zurichYMD(e.at);
+      return ymd >= bounds.start && ymd <= bounds.end;
+    });
+    if (!week.length) {
+      list.innerHTML = "<li>Keine Termine mit hoher Wichtigkeit in dieser Woche.</li>";
+    } else {
+      list.innerHTML = week.map((e) => (
+        "<li>" +
+        '<span class="ccy">' + escapeHtml(e.currency) + "</span>" +
+        escapeHtml(e.title) +
+        '<span class="event-meta">' + escapeHtml(formatEventWhen(e.at)) + " · Europe/Zurich</span>" +
+        "</li>"
+      )).join("");
+    }
+    if (!src) return;
+    if (calendar.fromCache) {
+      const t = calendar.fetchedAt ? formatEventWhen(new Date(calendar.fetchedAt)) : "—";
+      src.textContent = "Letzte gecachte Woche · Stand " + t + " · Europe/Zurich.";
+    } else {
+      src.textContent = "Forex-Factory-Woche · nur hohe Wichtigkeit · Europe/Zurich.";
+    }
+  }
+
+  /* —— News —— */
+  function setNewsOffline(offline) {
+    const wrap = document.getElementById("news-widget-wrap");
+    const fallback = document.getElementById("news-fallback");
+    const host = document.getElementById("tv-news");
+    if (!wrap || !fallback || !host) return;
+    wrap.classList.toggle("is-offline", offline);
+    fallback.hidden = !offline;
+    host.hidden = offline;
+  }
+
+  function newsConfig(feed, market) {
+    const base = {
+      colorTheme: "dark",
+      isTransparent: true,
+      displayMode: "regular",
+      width: "100%",
+      height: "100%",
+      locale: "de_DE",
+    };
+    if (feed === "market") return Object.assign({ feedMode: "market", market: market.newsMarket }, base);
+    return Object.assign({ feedMode: "symbol", symbol: market.symbol }, base);
+  }
+
+  function syncNewsButtons() {
+    document.querySelectorAll(".news-feed-btn").forEach((btn) => {
+      const on = btn.dataset.feed === newsFeed;
+      btn.classList.toggle("active", on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    const note = document.getElementById("news-fallback-note");
+    if (!note) return;
+    if (newsFeed === "market") {
+      note.textContent = "Markt-Feed (" + selected().newsMarket + ") als Ausweich. Symbol zeigt nur Meldungen zu " + selected().name + ".";
+    } else {
+      note.textContent = "Symbol-Feed zu " + selected().name + ". Wenn die Liste leer bleibt: Markt.";
+    }
+  }
+
+  function resetWidgetHost(host) {
+    host.querySelectorAll("script, iframe, style").forEach((n) => n.remove());
+    let w = host.querySelector(".tradingview-widget-container__widget");
+    if (!w) {
+      w = document.createElement("div");
+      w.className = "tradingview-widget-container__widget";
+    }
+    w.innerHTML = "";
+    host.insertBefore(w, host.firstChild);
+  }
+
+  function mountNews(force) {
+    const host = document.getElementById("tv-news");
+    if (!host) return;
+    syncNewsButtons();
+    const m = selected();
+    if (!navigator.onLine) {
+      setNewsOffline(true);
+      return;
+    }
+    setNewsOffline(false);
+    if (newsWidgetMounted && !force && newsFor === m.symbol + ":" + newsFeed) return;
+    resetWidgetHost(host);
+    const script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src = TV_NEWS_URL;
+    script.async = true;
+    script.textContent = JSON.stringify(newsConfig(newsFeed, m));
+    script.addEventListener("error", () => {
+      newsWidgetMounted = false;
+      newsFor = null;
+      setNewsOffline(true);
+    });
+    newsWidgetMounted = true;
+    newsFor = m.symbol + ":" + newsFeed;
+    host.appendChild(script);
+  }
+
+  document.querySelectorAll(".news-feed-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const next = btn.dataset.feed === "market" ? "market" : "symbol";
+      if (next === newsFeed && newsWidgetMounted) return;
+      newsFeed = next;
+      mountNews(true);
+    });
+  });
+
+  /* —— Chart —— */
+  function buildTvSrc(interval, market) {
+    const params = new URLSearchParams({
+      frameElementId: "tv-chart",
+      symbol: market.symbol,
+      interval: String(interval),
+      hidesidetoolbar: "1",
+      hidetoptoolbar: "0",
+      symboledit: "0",
+      saveimage: "0",
+      toolbarbg: "1c1916",
+      studies: "[]",
+      hideideas: "1",
+      theme: "dark",
+      style: "1",
+      timezone: "Europe/Zurich",
+      withdateranges: "1",
+      locale: "de",
+      enablepolling: "true",
+    });
+    return "https://s.tradingview.com/widgetembed/?" + params.toString();
+  }
+
+  function setChartOffline(offline) {
+    const wrap = document.getElementById("chart-wrap");
+    const fallback = document.getElementById("chart-fallback");
+    const iframe = document.getElementById("tv-chart");
+    if (!wrap || !fallback || !iframe) return;
+    wrap.classList.toggle("is-offline", offline);
+    fallback.hidden = !offline;
+    if (offline) iframe.removeAttribute("src");
+  }
+
+  function mountChart() {
+    const iframe = document.getElementById("tv-chart");
+    if (!iframe) return;
+    document.querySelectorAll(".tf-btn[data-tf]").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.tf === chartInterval);
+    });
+    const m = selected();
+    if (!navigator.onLine) {
+      setChartOffline(true);
+      return;
+    }
+    setChartOffline(false);
+    const next = buildTvSrc(chartInterval, m);
+    if (iframe.getAttribute("src") !== next) iframe.setAttribute("src", next);
+    if (chartLoadTimer) clearTimeout(chartLoadTimer);
+    chartLoadTimer = setTimeout(() => {
+      if (!navigator.onLine) setChartOffline(true);
+    }, 12000);
+  }
+
+  document.querySelectorAll(".tf-btn[data-tf]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      chartInterval = btn.dataset.tf || "10";
+      mountChart();
+    });
+  });
+
+  /* —— Kalender —— */
+  function setCalendarOffline(offline) {
+    const wrap = document.getElementById("calendar-widget-wrap");
+    const fallback = document.getElementById("calendar-fallback");
+    const host = document.getElementById("tv-economic-calendar");
+    if (!wrap || !fallback || !host) return;
+    wrap.classList.toggle("is-offline", offline);
+    fallback.hidden = !offline;
+    host.hidden = offline;
+  }
+
+  function syncImpButtons() {
+    document.querySelectorAll(".imp-btn").forEach((btn) => {
+      const on = btn.dataset.imp === calImportance;
+      btn.classList.toggle("active", on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+  }
+
+  function mountEconomicCalendar(force) {
+    const host = document.getElementById("tv-economic-calendar");
+    if (!host) return;
+    syncImpButtons();
+    if (!navigator.onLine) {
+      setCalendarOffline(true);
+      return;
+    }
+    setCalendarOffline(false);
+    if (calendarWidgetMounted && !force) return;
+    resetWidgetHost(host);
+    const script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src = TV_EVENTS_URL;
+    script.async = true;
+    script.textContent = JSON.stringify({
+      colorTheme: "dark",
+      isTransparent: false,
+      width: "100%",
+      height: "100%",
+      locale: "de",
+      currencyFilter: "USD,EUR,GBP,JPY,CAD,AUD,CHF,CNY",
+      importanceFilter: calImportance === "all" ? "-1,0,1" : "1",
+    });
+    script.addEventListener("error", () => {
+      calendarWidgetMounted = false;
+      setCalendarOffline(true);
+    });
+    calendarWidgetMounted = true;
+    host.appendChild(script);
+  }
+
+  document.querySelectorAll(".imp-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const next = btn.dataset.imp === "all" ? "all" : "high";
+      if (next === calImportance && calendarWidgetMounted) return;
+      calImportance = next;
+      mountEconomicCalendar(true);
+    });
+  });
+
+  window.addEventListener("online", () => {
+    const chartView = document.getElementById("view-chart");
+    if (chartView && !chartView.hidden) mountChart();
+    const calendarView = document.getElementById("view-kalender");
+    if (calendarView && !calendarView.hidden) mountEconomicCalendar();
+    const newsView = document.getElementById("view-news");
+    if (newsView && !newsView.hidden) mountNews();
+    fetchCalendar();
+    fetchQuotes();
+  });
+
+  window.addEventListener("offline", () => {
+    newsWidgetMounted = false;
+    newsFor = null;
+    quoteLive = false;
+    paintQuoteStatus();
+    const chartView = document.getElementById("view-chart");
+    if (chartView && !chartView.hidden) setChartOffline(true);
+    const calendarView = document.getElementById("view-kalender");
+    if (calendarView && !calendarView.hidden) setCalendarOffline(true);
+    const newsView = document.getElementById("view-news");
+    if (newsView && !newsView.hidden) setNewsOffline(true);
+  });
+
+  /* —— Init —— */
+  loadStoredMarket();
+  loadMarks();
+  loadQuoteCache();
+  buildWatchlist();
+  updateDeskClock();
+  setInterval(updateDeskClock, 1000);
+  renderDeskEvents();
+  renderWeekEvents();
+  fetchCalendar();
+  fetchQuotes();
+  setInterval(fetchQuotes, 60000);
+  const initialView = viewFromHash();
+  if (initialView && initialView !== "desk") showView(initialView);
+  setInterval(renderDeskEvents, 60000);
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./sw.js", { updateViaCache: "none" }).catch(() => {});
+  }
+})();

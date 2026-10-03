@@ -22,9 +22,7 @@
   const TV_EVENTS_URL = "https://s3.tradingview.com/external-embedding/embed-widget-events.js";
   const TV_NEWS_URL = "https://s3.tradingview.com/external-embedding/embed-widget-timeline.js";
   const TV_ECON_MAP_URL = "https://widgets.tradingview-widget.com/w/de_DE/tv-economic-map.js";
-  const TOP_NEWS_URL = "https://news-mediator.tradingview.com/public/news-flow/v2/news";
   const IRYY_BASE = "https://widgets.tradingview-widget.com/data/economic/countries/";
-  const TOP_PROVIDERS = ["reuters", "fxstreet", "dpa_afx", "awp"];
   const G20_IRYY = [
     ["AR", "Argentinien"],
     ["AU", "Australien"],
@@ -73,8 +71,6 @@
   let newsWidgetMounted = false;
   let newsFor = null;
   let newsFeed = "symbol";
-  let topProvider = "reuters";
-  let topAbort = null;
   let inflationStarted = false;
   let calendarWidgetMounted = false;
   let calImportance = "high";

@@ -66,7 +66,7 @@ Das **Radar** wiederholt den Session-Status in Europe/Zurich und die nächsten H
 
 ## Service Worker
 
-Cache `trading-cockpit-v8`: nur eigene App-Dateien (network-first, Cache-Fallback offline). TradingView und Forex Factory werden nicht abgefangen und nie gecacht.
+Cache `trading-cockpit-v10`: nur eigene App-Dateien (network-first, Cache-Fallback offline). TradingView und Forex Factory werden nicht abgefangen und nie gecacht.
 
 ## Bewusst nicht enthalten
 

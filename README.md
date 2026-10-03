@@ -26,20 +26,25 @@ Im GitHub-Repo liegen die Dateien im Root (Pages-Root), nicht in einem `app/`-Or
 
 ## Märkte
 
-| Taste | Symbol | Art |
-|-------|--------|-----|
-| EUR/USD | `FX:EURUSD` | Devisenpaar |
-| US 500 | `FOREXCOM:SPXUSD` | Index |
-| US 100 | `FOREXCOM:NSXUSD` | Index |
-| DAX | `FOREXCOM:GER40` | Index |
-| WTI Öl | `TVC:USOIL` | Öl |
-| Gas | `FOREXCOM:NATURALGAS` | Gas |
-| Gold | `TVC:GOLD` | Gold |
-| Silber | `TVC:SILVER` | Silber |
-| Bitcoin | `BITSTAMP:BTCUSD` | Krypto |
-| Ether | `BITSTAMP:ETHUSD` | Krypto |
-| Solana | `COINBASE:SOLUSD` | Krypto |
-| XRP | `BITSTAMP:XRPUSD` | Krypto |
+| Block | Zeile | Symbol | Art |
+|-------|-------|--------|-----|
+| Währungen | EUR/USD | `FX:EURUSD` | Devisenpaar |
+| Währungen | EUR/CHF | `FX:EURCHF` | Devisenpaar |
+| Währungen | USD/CHF | `FX:USDCHF` | Devisenpaar |
+| Indizes | Japan 225 | `TVC:NI225` | Index |
+| Indizes | SMI | `SIX:SMI` | Index |
+| Indizes | DAX | `FOREXCOM:GER40` | Index |
+| Indizes | Wall Street | `FOREXCOM:US30` | Index |
+| Indizes | S&P 500 | `FOREXCOM:SPXUSD` | Index |
+| Rohstoffe | Gold | `TVC:GOLD` | Gold |
+| Rohstoffe | Silber | `TVC:SILVER` | Silber |
+| Rohstoffe | Öl | `TVC:USOIL` | Öl |
+| Zinsen | Bund-Future | `EUREX:FGBL1!` | Euro-Bund-Future |
+| Zinsen | US-Treasury-Future | `CBOT:ZN1!` | US-Treasury-Future, 10 Jahre |
+| Krypto | Bitcoin | `BITSTAMP:BTCUSD` | Krypto |
+| Krypto | XRP | `BITSTAMP:XRPUSD` | Krypto |
+
+Die Watchlist hat nur diese Zeilen, mit einer dezenten Überschrift je Block. Bund-Future und US-Treasury-Future sind die Futures: der Scanner hat für `EUREX:FGBL1!` und `CBOT:ZN1!` Zahlen geliefert. Die Rendite wird nicht gezeigt.
 
 ### Symbol-Tausch nach lokalem Widget-Check
 

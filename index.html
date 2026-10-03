@@ -11,7 +11,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="styles.css?v=12" />
+  <link rel="stylesheet" href="styles.css?v=13" />
 </head>
 <body>
   <div class="app">
@@ -202,19 +202,8 @@
           <div class="tf-row news-feed-row" role="group" aria-label="News-Feed">
             <button type="button" class="tf-btn news-feed-btn active" data-feed="symbol" aria-pressed="true">Symbol</button>
             <button type="button" class="tf-btn news-feed-btn" data-feed="market" aria-pressed="false">Markt</button>
-            <button type="button" class="tf-btn news-feed-btn" data-feed="top" aria-pressed="false">Top-Provider</button>
-          </div>
-          <div class="tf-row news-provider-row" id="news-provider-row" role="group" aria-label="Top-Provider" hidden>
-            <button type="button" class="tf-btn news-provider-btn active" data-provider="reuters" aria-pressed="true">Reuters</button>
-            <button type="button" class="tf-btn news-provider-btn" data-provider="fxstreet" aria-pressed="false">FXStreet</button>
-            <button type="button" class="tf-btn news-provider-btn" data-provider="dpa_afx" aria-pressed="false">dpa-AFX</button>
-            <button type="button" class="tf-btn news-provider-btn" data-provider="awp" aria-pressed="false">AWP</button>
           </div>
           <p class="hint" id="news-fallback-note">Symbol ist die Vorgabe. Markt ist der Ausweich, wenn der Symbol-Feed leer bleibt.</p>
-          <div id="top-provider-panel" hidden>
-            <p class="hint" id="top-provider-status" hidden></p>
-            <div id="top-provider-list" class="top-provider-list"></div>
-          </div>
           <div id="news-widget-wrap" class="news-widget-wrap">
             <div id="news-fallback" class="news-fallback" hidden>
               <p class="chart-fallback-title">News offline</p>
@@ -252,6 +241,6 @@
       </button>
     </nav>
   </div>
-  <script src="app.js?v=12"></script>
+  <script src="app.js?v=13"></script>
 </body>
 </html>

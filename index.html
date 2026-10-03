@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0d1117" />
-  <meta name="description" content="Trading Cockpit — Info-only Desk für EUR/USD (RöffÄää)" />
+  <meta name="description" content="Trading Cockpit — Devisen, Indizes, Rohstoffe, Krypto. Anzeige, keine Finanzberatung. RöffÄää" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Trading Cockpit</title>
@@ -20,28 +20,60 @@
         <img src="icons/icon.svg" alt="" class="brand-icon" width="28" height="28" />
         <div>
           <h1>Trading Cockpit</h1>
-          <p class="subtitle">EUR/USD · Info only · RöffÄää</p>
+          <p class="subtitle">Devisen · Indizes · Rohstoffe · Krypto · RöffÄää</p>
+          <p class="subtitle fine">Anzeige, keine Finanzberatung.</p>
         </div>
       </div>
     </header>
 
     <main id="views">
-      <!-- DESK -->
       <section id="view-desk" class="view active" data-view="desk" aria-label="Desk">
-        <div class="card hero">
-          <p class="label">Heute</p>
+        <div class="card clock-card">
+          <p class="label">Heute · Europe/Zurich</p>
           <p id="desk-date" class="date-line">—</p>
-          <p id="desk-clock" class="clock-line">—</p>
+          <p class="clock-face" aria-live="polite">
+            <span id="clock-hm">--:--</span><span id="clock-colon" class="colon">:</span><span id="clock-sec" class="sec">--</span>
+          </p>
+          <div class="lamps" id="session-lamps" aria-label="Sessions">
+            <div class="lamp-unit" data-session="london">
+              <span class="lamp" aria-hidden="true"></span>
+              <span class="lamp-name">London</span>
+              <span class="lamp-time">09–17:30</span>
+            </div>
+            <div class="lamp-unit" data-session="ny">
+              <span class="lamp" aria-hidden="true"></span>
+              <span class="lamp-name">NY</span>
+              <span class="lamp-time">14:30–21</span>
+            </div>
+            <div class="lamp-unit" data-session="overlap">
+              <span class="lamp" aria-hidden="true"></span>
+              <span class="lamp-name">Overlap</span>
+              <span class="lamp-time">14:30–17:30</span>
+            </div>
+          </div>
+        </div>
+
+        <p class="feld" id="feld">
+          <span class="feld-tag">Feld</span>
+          <span class="feld-line" id="feld-line">—</span>
+        </p>
+
+        <div class="deck">
+          <div class="orbit" id="orbit" role="group" aria-label="Märkte"></div>
+          <p class="hint orbit-hint">Tipp auf eine Taste holt den Markt in die Mitte. Chart und News folgen.</p>
         </div>
 
         <div class="card quote-card">
           <div class="quote-head">
-            <h2>EUR/USD Kurs</h2>
+            <h2 id="quote-title">Kurs</h2>
             <span class="badge-feed">TradingView · Live</span>
           </div>
-          <p class="hint disclaimer">
-            Kurs, Tagesveränderung und Tagesbereich · nur Anzeige, keine Signale.
-          </p>
+          <p class="hint disclaimer">Nur Anzeige. Keine Order, keine Empfehlung.</p>
+          <div id="tape-wrap" class="tape-wrap">
+            <div id="tv-tape" class="tradingview-widget-container tape-tv">
+              <div class="tradingview-widget-container__widget"></div>
+            </div>
+          </div>
           <div id="quote-widget-wrap" class="quote-widget-wrap">
             <div id="quote-fallback" class="quote-fallback" hidden>
               <p class="chart-fallback-title">Kurs offline</p>
@@ -50,8 +82,8 @@
             <div id="tv-quote" class="tradingview-widget-container quote-tv" hidden>
               <div class="tradingview-widget-container__widget"></div>
               <div class="tradingview-widget-copyright">
-                <a href="https://www.tradingview.com/symbols/EURUSD/?exchange=FX" rel="noopener nofollow" target="_blank">
-                  <span class="blue-text">EURUSD</span>
+                <a id="quote-credit" href="https://www.tradingview.com/symbols/EURUSD/?exchange=FX" rel="noopener nofollow" target="_blank">
+                  <span class="blue-text" id="quote-credit-name">EURUSD</span>
                 </a> by TradingView
               </div>
             </div>
@@ -59,34 +91,22 @@
           <p class="hint" id="quote-updated">Live via TradingView</p>
         </div>
 
-        <div class="card">
-          <h2>Sessions</h2>
-          <div class="session-chips" id="session-chips">
-            <button type="button" class="chip" data-session="london" title="ca. 09:00–17:30 Europe/Zurich">
-              <span class="chip-dot"></span> London <span class="chip-time">09–17:30</span>
-            </button>
-            <button type="button" class="chip" data-session="ny" title="ca. 14:30–21:00 Europe/Zurich">
-              <span class="chip-dot"></span> NY <span class="chip-time">14:30–21</span>
-            </button>
-            <button type="button" class="chip" data-session="overlap" title="ca. 14:30–17:30 Europe/Zurich">
-              <span class="chip-dot"></span> Overlap <span class="chip-time">14:30–17:30</span>
-            </button>
+        <div class="card radar-card">
+          <div class="kalender-head">
+            <h2>Radar</h2>
+            <span class="badge-quiet">Hinweise</span>
           </div>
-          <p class="hint">Zeiten ungefähr, Europe/Zurich (MEZ/MESZ).</p>
-        </div>
-
-        <div class="card">
-          <h2>Nächste 3 Events</h2>
+          <p class="radar-label">Hinweise, keine Order, keine Empfehlung.</p>
+          <p class="radar-status" id="radar-session">—</p>
           <ul class="event-list" id="desk-events"></ul>
           <p class="hint" id="desk-events-source">Optionaler Feed · Fallback aus lokalem Cache.</p>
         </div>
       </section>
 
-      <!-- CHART -->
       <section id="view-chart" class="view" data-view="chart" aria-label="Chart" hidden>
         <div class="card">
-          <h2>EUR/USD Chart</h2>
-          <p class="hint">Nur Anzeige · TradingView · keine Signale, keine Orders</p>
+          <h2 id="chart-title">Chart</h2>
+          <p class="hint" id="chart-kind">Nur Anzeige · TradingView · keine Signale, keine Orders</p>
           <div class="tf-row" role="group" aria-label="Zeitrahmen">
             <button type="button" class="tf-btn active" data-tf="10">M10</button>
             <button type="button" class="tf-btn" data-tf="60">H1</button>
@@ -102,18 +122,17 @@
             </div>
             <iframe
               id="tv-chart"
-              title="EUR/USD Chart TradingView"
+              title="Chart TradingView"
               class="tv-iframe"
               loading="lazy"
               referrerpolicy="no-referrer-when-downgrade"
               allow="fullscreen"
             ></iframe>
           </div>
-          <p class="hint chart-credit">Daten &amp; Widget: TradingView · Anzeige only</p>
+          <p class="hint chart-credit">Daten und Widget: TradingView · Anzeige only</p>
         </div>
       </section>
 
-      <!-- KALENDER -->
       <section id="view-kalender" class="view" data-view="kalender" aria-label="Kalender" hidden>
         <div class="card">
           <div class="kalender-head">
@@ -121,8 +140,12 @@
             <span class="badge-feed">TradingView · Live</span>
           </div>
           <p class="hint disclaimer">
-            Wirtschaftstermine für EUR und USD · hohe Relevanz. Keine Finanzberatung, keine Handelsempfehlung.
+            USD, EUR und weitere Leitwährungen. Rohstoffe und Krypto hängen oft an USD-Terminen. Keine Finanzberatung, keine Handelsempfehlung.
           </p>
+          <div class="tf-row" role="group" aria-label="Wichtigkeit">
+            <button type="button" class="tf-btn imp-btn active" data-imp="high" aria-pressed="true">Hoch</button>
+            <button type="button" class="tf-btn imp-btn" data-imp="all" aria-pressed="false">Alle</button>
+          </div>
           <div id="calendar-widget-wrap" class="calendar-widget-wrap">
             <div id="calendar-fallback" class="calendar-fallback" hidden>
               <p class="chart-fallback-title">Kalender offline</p>
@@ -140,20 +163,20 @@
         </div>
       </section>
 
-      <!-- NEWS -->
       <section id="view-news" class="view" data-view="news" aria-label="News" hidden>
         <div class="card">
           <div class="kalender-head">
             <h2>News</h2>
-            <span class="badge-feed">TradingView · EURUSD</span>
+            <span class="badge-feed" id="news-badge">TradingView</span>
           </div>
-          <p class="hint disclaimer">
-            Nachrichten zu EUR/USD und zum Devisenmarkt · nur Information, keine Kauf-/Verkaufstipps.
+          <p class="hint disclaimer" id="news-disclaimer">
+            Timeline zum gewählten Markt · nur Information, keine Kauf- oder Verkaufstipps.
           </p>
           <div class="tf-row news-feed-row" role="group" aria-label="News-Feed">
-            <button type="button" class="tf-btn news-feed-btn active" data-feed="eurusd" aria-pressed="true">EUR/USD</button>
-            <button type="button" class="tf-btn news-feed-btn" data-feed="forex" aria-pressed="false">Forex</button>
+            <button type="button" class="tf-btn news-feed-btn active" data-feed="symbol" aria-pressed="true">Symbol</button>
+            <button type="button" class="tf-btn news-feed-btn" data-feed="market" aria-pressed="false">Markt</button>
           </div>
+          <p class="hint" id="news-fallback-note">Symbol ist die Vorgabe. Markt ist der Ausweich, wenn der Symbol-Feed leer bleibt.</p>
           <div id="news-widget-wrap" class="news-widget-wrap">
             <div id="news-fallback" class="news-fallback" hidden>
               <p class="chart-fallback-title">News offline</p>
@@ -162,8 +185,8 @@
             <div id="tv-news" class="tradingview-widget-container news-tv" hidden>
               <div class="tradingview-widget-container__widget"></div>
               <div class="tradingview-widget-copyright">
-                <a href="https://www.tradingview.com/symbols/EURUSD/?exchange=FX" rel="noopener nofollow" target="_blank">
-                  <span class="blue-text">EURUSD News</span>
+                <a id="news-credit" href="https://www.tradingview.com/symbols/EURUSD/?exchange=FX" rel="noopener nofollow" target="_blank">
+                  <span class="blue-text" id="news-credit-name">News</span>
                 </a> by TradingView
               </div>
             </div>

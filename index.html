@@ -11,7 +11,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="styles.css?v=11" />
+  <link rel="stylesheet" href="styles.css?v=12" />
 </head>
 <body>
   <div class="app">
@@ -167,6 +167,27 @@
             </div>
           </div>
         </div>
+        <div class="card" id="inflation-card">
+          <div class="kalender-head">
+            <h2>Globale Inflation, YoY</h2>
+            <span class="badge-feed">TradingView</span>
+          </div>
+          <p class="hint disclaimer">
+            Weltkarte der Inflationsrate aus dem öffentlichen Economic-Map-Widget. Die Liste darunter liest dieselben öffentlichen Länderdateien. Nur Information, keine Empfehlung.
+          </p>
+          <div id="inflation-map" class="inflation-map">
+            <p id="inflation-map-fallback" class="hint inflation-fallback" hidden>Karte nicht erreichbar</p>
+          </div>
+          <h3 class="inflation-sub">Die Inflationsraten der Top-G20</h3>
+          <ol id="inflation-list" class="inflation-list"></ol>
+          <p id="inflation-status" class="hint" hidden></p>
+          <p class="hint">Letzter Wert je Reihe, Europe/Zurich. Die EU hat keine öffentliche Datei und fehlt deshalb. Die Farbleiste setzt das Widget.</p>
+          <div class="tradingview-widget-copyright">
+            <a href="https://de.tradingview.com/markets/world-economy/charts-global-trends/" rel="noopener nofollow" target="_blank">
+              <span class="blue-text">Globale Inflation</span>
+            </a> by TradingView · IMF
+          </div>
+        </div>
       </section>
 
       <section id="view-news" class="view" data-view="news" aria-label="News" hidden>
@@ -181,8 +202,19 @@
           <div class="tf-row news-feed-row" role="group" aria-label="News-Feed">
             <button type="button" class="tf-btn news-feed-btn active" data-feed="symbol" aria-pressed="true">Symbol</button>
             <button type="button" class="tf-btn news-feed-btn" data-feed="market" aria-pressed="false">Markt</button>
+            <button type="button" class="tf-btn news-feed-btn" data-feed="top" aria-pressed="false">Top-Provider</button>
+          </div>
+          <div class="tf-row news-provider-row" id="news-provider-row" role="group" aria-label="Top-Provider" hidden>
+            <button type="button" class="tf-btn news-provider-btn active" data-provider="reuters" aria-pressed="true">Reuters</button>
+            <button type="button" class="tf-btn news-provider-btn" data-provider="fxstreet" aria-pressed="false">FXStreet</button>
+            <button type="button" class="tf-btn news-provider-btn" data-provider="dpa_afx" aria-pressed="false">dpa-AFX</button>
+            <button type="button" class="tf-btn news-provider-btn" data-provider="awp" aria-pressed="false">AWP</button>
           </div>
           <p class="hint" id="news-fallback-note">Symbol ist die Vorgabe. Markt ist der Ausweich, wenn der Symbol-Feed leer bleibt.</p>
+          <div id="top-provider-panel" hidden>
+            <p class="hint" id="top-provider-status" hidden></p>
+            <div id="top-provider-list" class="top-provider-list"></div>
+          </div>
           <div id="news-widget-wrap" class="news-widget-wrap">
             <div id="news-fallback" class="news-fallback" hidden>
               <p class="chart-fallback-title">News offline</p>
@@ -220,6 +252,6 @@
       </button>
     </nav>
   </div>
-  <script src="app.js?v=11"></script>
+  <script src="app.js?v=12"></script>
 </body>
 </html>

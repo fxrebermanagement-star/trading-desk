@@ -695,3 +695,75 @@ main { padding: 12px 14px 8px; }
 .wl-head-cmd { color: #b89a5a; }
 .wl-head-rate { color: #8d7aa8; }
 .wl-head-crypto { color: #c45b6a; }
+
+/* Top-Provider und Inflationskarte */
+.news-provider-row { margin-top: 8px; }
+.news-provider-row[hidden] { display: none !important; }
+.news-provider-btn { flex: 1 1 calc(50% - 8px); letter-spacing: 0.02em; }
+#top-provider-panel[hidden] { display: none !important; }
+.top-provider-list { margin-top: 4px; }
+.tp-item {
+  display: block;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  color: inherit;
+  text-decoration: none;
+}
+.tp-item:last-child { border-bottom: 0; }
+.tp-meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.tp-title {
+  margin: 2px 0 0;
+  font-weight: 650;
+  line-height: 1.35;
+}
+.inflation-map {
+  position: relative;
+  height: 480px;
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+}
+.inflation-map tv-economic-map { display: block; width: 100%; height: 100%; }
+.inflation-fallback {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-elev);
+}
+.inflation-fallback[hidden] { display: none !important; }
+.inflation-sub {
+  margin: 14px 0 6px;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+.inflation-list { list-style: none; margin: 0; padding: 0; }
+.inflation-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.inflation-row:last-child { border-bottom: 0; }
+.inflation-name { font-weight: 650; }
+.inflation-when {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.inflation-rate {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--text);
+}

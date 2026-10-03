@@ -637,3 +637,61 @@ main { padding: 12px 14px 8px; }
   .mark-btn { padding: 2px 4px; }
   .wl-px { font-size: 1rem; }
 }
+
+/* Day range in the watchlist row: quiet track, clear marker. Hidden when high, low or price is missing. */
+.wl-range {
+  position: relative;
+  height: 3px;
+  margin-top: 5px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 23, 68, 0.28), #1c2632 50%, rgba(0, 200, 83, 0.28));
+}
+.wl-range[hidden] { display: none; }
+.wl-range-mark {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 50%;
+  transform: translateY(-50%);
+  background: #d7e2ec;
+  box-shadow: 0 0 0 1px rgba(8, 12, 16, 0.65);
+}
+.wl-range-mark.up { background: #69f0ae; }
+.wl-range-mark.down { background: #ff8a9a; }
+.wl-abgleich {
+  margin: 1px 0 0;
+  max-width: 132px;
+  font-size: 0.58rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: right;
+  color: #9aabbc;
+}
+.wl-abgleich[hidden] { display: none; }
+
+.wl-head {
+  padding: 7px 10px 2px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #6e7d8d;
+  background: transparent;
+}
+.wl-head::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 2px;
+  margin-right: 6px;
+  vertical-align: 2px;
+  border-radius: 1px;
+  background: currentColor;
+}
+.wl-head-fx { color: #3d9a62; }
+.wl-head-idx { color: #7f93a8; }
+.wl-head-cmd { color: #b89a5a; }
+.wl-head-rate { color: #8d7aa8; }
+.wl-head-crypto { color: #c45b6a; }

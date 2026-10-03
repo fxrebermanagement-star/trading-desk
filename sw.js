@@ -1,8 +1,8 @@
-/* Service worker — app shell offline cache (v9).
+/* Service worker — app shell offline cache (v10).
  * Only same-origin app files are cached. Third-party requests (TradingView
  * widgets/iframes, Forex Factory feed) are NOT intercepted at all, so the
  * browser loads them natively and they can never be served stale or broken. */
-const CACHE = "trading-cockpit-v9";
+const CACHE = "trading-cockpit-v10";
 const SHELL = [
   "./",
   "./index.html",

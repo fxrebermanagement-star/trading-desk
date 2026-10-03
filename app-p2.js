@@ -227,38 +227,17 @@
       btn.classList.toggle("active", on);
       btn.setAttribute("aria-pressed", on ? "true" : "false");
     });
-    const row = document.getElementById("news-provider-row");
-    if (row) row.hidden = newsFeed !== "top";
-    document.querySelectorAll(".news-provider-btn").forEach((btn) => {
-      const on = btn.dataset.provider === topProvider;
-      btn.classList.toggle("active", on);
-      btn.setAttribute("aria-pressed", on ? "true" : "false");
-    });
     const note = document.getElementById("news-fallback-note");
     const disclaimer = document.getElementById("news-disclaimer");
     if (disclaimer) {
-      disclaimer.textContent = newsFeed === "top"
-        ? "Top-Provider auf Deutsch · nur Information, keine Kauf- oder Verkaufstipps."
-        : "Timeline zum gewählten Markt · nur Information, keine Kauf- oder Verkaufstipps.";
+      disclaimer.textContent = "Timeline zum gewählten Markt · nur Information, keine Kauf- oder Verkaufstipps.";
     }
     if (!note) return;
-    if (newsFeed === "top") {
-      note.textContent = "Reuters steht zuerst. Symbol und Markt bleiben über die anderen Schalter. Zeit in Europe/Zurich.";
-    } else if (newsFeed === "market") {
+    if (newsFeed === "market") {
       note.textContent = "Markt-Feed (" + selected().newsMarket + ") als Ausweich. Symbol zeigt nur Meldungen zu " + selected().name + ".";
     } else {
       note.textContent = "Symbol-Feed zu " + selected().name + ". Wenn die Liste leer bleibt: Markt.";
     }
-  }
-
-  function zurichStamp(ms) {
-    return new Intl.DateTimeFormat("de-CH", {
-      timeZone: TZ,
-      day: "2-digit",
-      month: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(ms)) + " Europe/Zurich";
   }
 
   function zurichMonth(ms) {
@@ -269,82 +248,3 @@
     }).format(new Date(ms));
   }
 
-  function topNewsHref(item) {
-    const path = item && typeof item.storyPath === "string" ? item.storyPath : "";
-    if (path.charAt(0) === "/") return "https://de.tradingview.com" + path;
-    if (typeof item.link === "string" && item.link.indexOf("https://") === 0) return item.link;
-    return "";
-  }
-
-  function setTopStatus(text) {
-    const status = document.getElementById("top-provider-status");
-    const list = document.getElementById("top-provider-list");
-    if (list) list.replaceChildren();
-    if (!status) return;
-    status.hidden = !text;
-    status.textContent = text || "";
-  }
-
-  async function loadTopProvider() {
-    const list = document.getElementById("top-provider-list");
-    const status = document.getElementById("top-provider-status");
-    if (!list || !status) return;
-    const provider = TOP_PROVIDERS.indexOf(topProvider) >= 0 ? topProvider : "reuters";
-    topProvider = provider;
-    if (topAbort) topAbort.abort();
-    if (!navigator.onLine) {
-      setTopStatus("Top-Provider nicht erreichbar");
-      return;
-    }
-    list.replaceChildren();
-    status.hidden = false;
-    status.textContent = "Lade Schlagzeilen…";
-    const ac = new AbortController();
-    topAbort = ac;
-    const url = TOP_NEWS_URL
-      + "?filter=" + encodeURIComponent("lang:de")
-      + "&filter=" + encodeURIComponent("provider:" + provider)
-      + "&client=landing&streaming=false";
-    try {
-      const res = await fetch(url, {
-        cache: "no-store",
-        credentials: "omit",
-        mode: "cors",
-        signal: ac.signal,
-      });
-      if (!res.ok) throw new Error("status");
-      const data = await res.json();
-      if (ac.signal.aborted || provider !== topProvider || newsFeed !== "top") return;
-      const raw = data && Array.isArray(data.items) ? data.items : [];
-      const rows = [];
-      raw.forEach((it) => {
-        if (rows.length >= 20 || !it) return;
-        if (typeof it.title !== "string" || !it.title.trim()) return;
-        if (!it.provider || it.provider.id !== provider || typeof it.provider.name !== "string" || !it.provider.name) return;
-        if (typeof it.published !== "number" || !isFinite(it.published)) return;
-        rows.push(it);
-      });
-      if (!rows.length) {
-        setTopStatus("Top-Provider nicht erreichbar");
-        return;
-      }
-      status.hidden = true;
-      status.textContent = "";
-      rows.forEach((it) => {
-        const href = topNewsHref(it);
-        const node = document.createElement(href ? "a" : "div");
-        node.className = "tp-item";
-        if (href) {
-          node.href = href;
-          node.target = "_blank";
-          node.rel = "noopener nofollow";
-        }
-        const meta = document.createElement("div");
-        meta.className = "tp-meta";
-        meta.textContent = it.provider.name + " · " + zurichStamp(it.published * 1000);
-        const title = document.createElement("p");
-        title.className = "tp-title";
-        title.textContent = it.title.trim();
-        node.appendChild(meta);
-        node.appendChild(title);
-        list.appendChild(node);

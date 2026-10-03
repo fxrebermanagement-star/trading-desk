@@ -1,11 +1,3 @@
-      });
-    } catch (e) {
-      if (e && e.name === "AbortError") return;
-      if (provider !== topProvider || newsFeed !== "top") return;
-      setTopStatus("Top-Provider nicht erreichbar");
-    }
-  }
-
   function resetWidgetHost(host) {
     host.querySelectorAll("script, iframe, style").forEach((n) => n.remove());
     let w = host.querySelector(".tradingview-widget-container__widget");
@@ -21,15 +13,6 @@
     const host = document.getElementById("tv-news");
     if (!host) return;
     syncNewsButtons();
-    const panel = document.getElementById("top-provider-panel");
-    const wrap = document.getElementById("news-widget-wrap");
-    const top = newsFeed === "top";
-    if (panel) panel.hidden = !top;
-    if (wrap) wrap.hidden = top;
-    if (top) {
-      loadTopProvider();
-      return;
-    }
     const m = selected();
     if (!navigator.onLine) {
       setNewsOffline(true);
@@ -56,21 +39,13 @@
   document.querySelectorAll(".news-feed-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const raw = btn.dataset.feed;
-      const next = raw === "market" || raw === "top" ? raw : "symbol";
-      if (next === newsFeed && next !== "top" && newsWidgetMounted) return;
+      const next = raw === "market" ? "market" : "symbol";
+      if (next === newsFeed && newsWidgetMounted) return;
       newsFeed = next;
       mountNews(true);
     });
   });
 
-  document.querySelectorAll(".news-provider-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const next = TOP_PROVIDERS.indexOf(btn.dataset.provider) >= 0 ? btn.dataset.provider : "reuters";
-      topProvider = next;
-      newsFeed = "top";
-      mountNews(true);
-    });
-  });
 
   /* —— Chart —— */
   function buildTvSrc(interval, market) {
@@ -216,10 +191,7 @@
     const calendarView = document.getElementById("view-kalender");
     if (calendarView && !calendarView.hidden) setCalendarOffline(true);
     const newsView = document.getElementById("view-news");
-    if (newsView && !newsView.hidden) {
-      if (newsFeed === "top") setTopStatus("Top-Provider nicht erreichbar");
-      else setNewsOffline(true);
-    }
+    if (newsView && !newsView.hidden) setNewsOffline(true);
   });
 
 

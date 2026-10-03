@@ -1,6 +1,8 @@
 # Trading Cockpit
 
-Ruhiges **Info-only**-Desk für **EUR/USD** (RöffÄää). Statische PWA ohne Broker, Signale, Orders oder Handlungsanweisungen: Live-Kurs, Sessions, nächste Events, Chart, Kalender und News.
+Persönliches **Info-only**-Desk für **Devisen, Indizes, Rohstoffe und Krypto** (RöffÄää). Statische PWA ohne Broker, ohne Orders und ohne Kauf- oder Verkaufstipps.
+
+Anzeige, keine Finanzberatung.
 
 ## Lokal öffnen
 
@@ -11,47 +13,73 @@ python3 -m http.server 8080
 
 Dann: <http://127.0.0.1:8080/>
 
+Im GitHub-Repo liegen die Dateien im Root (Pages-Root), nicht in einem `app/`-Ordner.
+
 ## Navigation
 
 | Tab | Inhalt |
 |-----|--------|
-| **Desk** | Datum/Uhrzeit Europe/Zurich, EUR/USD Live-Kurs (TradingView Symbol Info: Kurs, Tagesveränderung, Tagesbereich), Session-Chips London/NY/Overlap und nächste 3 High-Impact EUR/USD Events |
-| **Chart** | TradingView-Embed EUR/USD (Anzeige only), TF: M10 / H1 / H4 / D1 — Default **M10** |
-| **Kalender** | Primär TradingView Economic Calendar Widget, dark, Deutsch, EUR/USD, High-Importance |
-| **News** | TradingView Timeline: EUR/USD-Feed (`FX:EURUSD`) oder Forex-Markt, umschaltbar, dark, Deutsch |
+| **Desk** | Uhr Europe/Zurich mit leisem Tick, Session-Lampen (leuchten nur an Werktagen, wenn London, NY oder Overlap offen ist; Samstag und Sonntag bleiben dunkel), Feld-Zeile, Marktring, Live-Kurs, Radar |
+| **Chart** | TradingView-Embed des gewählten Markts, TF: M10 / H1 / H4 / D1 — Default **M10** |
+| **Kalender** | TradingView Economic Calendar, dark, Deutsch. Währungen USD, EUR, GBP, JPY, CAD, AUD, CHF, CNY. Umschalter **Hoch** (Default) / **Alle** |
+| **News** | TradingView Timeline zum gewählten Symbol. Schalter **Markt** ist der Ausweich, wenn der Symbol-Feed leer bleibt |
 
-## Kalender
+## Märkte
 
-Der Kalender-Tab lädt unabhängig vom optionalen Feed das TradingView Embed `embed-widget-events.js` mit:
+| Taste | Symbol | Art |
+|-------|--------|-----|
+| EUR/USD | `FX:EURUSD` | Devisenpaar |
+| US 500 | `FOREXCOM:SPXUSD` | Index |
+| US 100 | `FOREXCOM:NSXUSD` | Index |
+| DAX | `FOREXCOM:GER40` | Index |
+| WTI Öl | `TVC:USOIL` | Öl |
+| Gas | `FOREXCOM:NATURALGAS` | Gas |
+| Gold | `TVC:GOLD` | Gold |
+| Silber | `TVC:SILVER` | Silber |
+| Bitcoin | `BITSTAMP:BTCUSD` | Krypto |
+| Ether | `BITSTAMP:ETHUSD` | Krypto |
+| Solana | `COINBASE:SOLUSD` | Krypto |
+| XRP | `BITSTAMP:XRPUSD` | Krypto |
 
-- `colorTheme: dark`
-- `locale: de`
-- `currencyFilter: EUR,USD`
-- `importanceFilter: 1` (High, damit der Kalender ruhig und relevant bleibt)
+### Symbol-Tausch nach lokalem Widget-Check
 
-Offline erscheint eine ruhige deutsche Meldung wie beim Chart. Der FF-Wochenfeed `https://nfs.faireconomy.media/ff_calendar_thisweek.json` wird nur optional für die kompakte **Nächste 3 Events**-Vorschau auf dem Desk versucht. Bei 429, CORS oder Netzfehler bleibt die letzte lokale Cache-Woche sichtbar; der Kalender selbst ist davon nicht abhängig.
+Die Embeds wurden headless gegen `widgetembed` geprüft. Getauscht wurde nur, wo das angeforderte Symbol nicht lud:
 
-## Kurs & News
+- `FOREXCOM:DEU40` zeigte «Invalid symbol». Nächster freier FOREX.com-DAX, der Kerzen lud: **`FOREXCOM:GER40`** (Germany 40 CFD).
+- `TVC:NATURALGAS` existiert im Widget nicht («symbol doesn't exist»). Nächster freier Gas-CFD, der lud: **`FOREXCOM:NATURALGAS`**.
 
-- Desk: `embed-widget-symbol-info.js`, `symbol: FX:EURUSD`, `colorTheme: dark`, `locale: de_DE`. Auf schmalen Displays ist die Kennzahlenzeile (Vortag, Eröffnung, Tagesbereich) seitlich wischbar.
-- News: `embed-widget-timeline.js`, `feedMode: symbol` (`FX:EURUSD`) bzw. `feedMode: market` (`forex`), `locale: de_DE`.
-- Offline zeigen beide Karten eine ruhige deutsche Meldung.
-- Direktlinks: `#desk`, `#chart`, `#kalender`, `#news`.
+Unverändert, weil der Chart lud: `FX:EURUSD`, `FOREXCOM:SPXUSD`, `FOREXCOM:NSXUSD` (US 100), `TVC:USOIL`, `TVC:GOLD`, `TVC:SILVER`, `BITSTAMP:BTCUSD`, `BITSTAMP:ETHUSD`, `COINBASE:SOLUSD`, `BITSTAMP:XRPUSD`.
+
+Kurse kommen nur aus TradingView-Widgets. Die Tagesrichtung im Feld («heute grün/rot») erscheint nur, wenn der TradingView-Scanner für **genau dieses** Symbol eine Zahl liefert. Sonst fällt der Satzteil weg. Es werden keine Preise erfunden.
+
+## Feld und Radar
+
+Das **Feld** unter der Uhr ist eine Zeile aus bis zu drei Tatsachen: Session (London offen, New York offen, Overlap läuft oder Ruhig), nächster High-Impact-Termin mit Countdown aus dem optionalen Feed, und die Tagesrichtung des gewählten Markts falls vorhanden. Fehlende Tatsachen werden weggelassen.
+
+Das **Radar** wiederholt den Session-Status in Europe/Zurich und die nächsten High-Impact-Termine. Beschriftung: «Hinweise, keine Order, keine Empfehlung.» Keine Einstiege, keine Stops, kein Long/Short.
+
+## Kalender und News
+
+- Kalender: `embed-widget-events.js`, `colorTheme: dark`, `locale: de`, `currencyFilter: USD,EUR,GBP,JPY,CAD,AUD,CHF,CNY`, `importanceFilter: 1` oder bei **Alle** `-1,0,1`.
+- News: `embed-widget-timeline.js`, `feedMode: symbol` zum gewählten Symbol, `locale: de_DE`. **Markt** schaltet auf `feedMode: market` (forex, index, futures oder crypto). Die Headline-Schnittstelle setzt kein CORS für die Pages-Domain, deshalb schaltet die App nicht still um, sondern lässt den Ausweich sichtbar.
+- Der FF-Wochenfeed bleibt optional für Feld und Radar. Bei Fehler gilt der lokale Cache. Der Kalender hängt nicht davon ab.
 
 ## Service Worker
 
-Cache `trading-cockpit-v7`: nur eigene App-Dateien (network-first, Cache-Fallback offline). Drittanbieter-Anfragen (TradingView, Forex Factory) werden nicht abgefangen und nie gecacht.
+Cache `trading-cockpit-v8`: nur eigene App-Dateien (network-first, Cache-Fallback offline). TradingView und Forex Factory werden nicht abgefangen und nie gecacht.
 
-## Bewusst entfernt
+## Bewusst nicht enthalten
 
-Ampel, Journal, Wochenplan, No-Trade-Checklisten, Playbook, Trade-Entry-Formulare, Risk-Sheets und manuelle Event-Eingabe sind bewusst nicht enthalten.
+Broker, Orders, Journal, Signale, Einstiege, Stops, Long/Short-Aufrufe, Playbook.
 
 ## GitHub Pages
 
-Repo: `fxrebermanagement-star/trading-desk` — der Inhalt von `app/` ist als Pages-Root vorbereitet. Relative Pfade (`./`) funktionieren auch unter dem Projektpfad.
+Repo: `fxrebermanagement-star/trading-desk`. Pages-Root ist der Repo-Root (Inhalt der lokalen `app/`).
+
+Live: <https://fxrebermanagement-star.github.io/trading-desk/>
 
 ## Hinweise
 
-- UI auf Deutsch; Zeitangaben in Europe/Zurich.
-- Kurs, Chart, Kalender und News sind reine Drittanbieter-Anzeigen von TradingView.
+- UI auf Deutsch, ohne Genderstern. Zeitangaben in Europe/Zurich.
+- Kurs, Chart, Kalender und News sind Drittanbieter-Anzeigen von TradingView.
 - Keine Finanzberatung, keine Handelsempfehlung.

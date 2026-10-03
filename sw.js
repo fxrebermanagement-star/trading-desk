@@ -8,6 +8,10 @@ const SHELL = [
   "./index.html",
   "./styles.css",
   "./app.js",
+  "./app-p0.js",
+  "./app-p1.js",
+  "./app-p2.js",
+  "./app-p3.js",
   "./manifest.webmanifest",
   "./icons/icon.svg",
 ];

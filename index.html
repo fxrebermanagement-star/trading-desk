@@ -28,6 +28,29 @@
 
     <main id="views">
       <section id="view-desk" class="view active" data-view="desk" aria-label="Desk">
+        <div class="world" id="world-clocks" aria-label="Weltzeiten">
+          <div class="world-item home" data-zone="Europe/Zurich">
+            <span class="world-city">Zürich</span>
+            <span class="world-hm">--:--</span>
+            <span class="world-date"></span>
+          </div>
+          <div class="world-item" data-zone="Europe/London">
+            <span class="world-city">London</span>
+            <span class="world-hm">--:--</span>
+            <span class="world-date"></span>
+          </div>
+          <div class="world-item" data-zone="America/New_York">
+            <span class="world-city">New York</span>
+            <span class="world-hm">--:--</span>
+            <span class="world-date"></span>
+          </div>
+          <div class="world-item" data-zone="Asia/Tokyo">
+            <span class="world-city">Tokyo</span>
+            <span class="world-hm">--:--</span>
+            <span class="world-date"></span>
+          </div>
+        </div>
+
         <div class="card clock-card">
           <p class="label">Heute · Europe/Zurich</p>
           <p id="desk-date" class="date-line">—</p>
@@ -58,37 +81,20 @@
           <span class="feld-line" id="feld-line">—</span>
         </p>
 
-        <div class="deck">
-          <div class="orbit" id="orbit" role="group" aria-label="Märkte"></div>
-          <p class="hint orbit-hint">Tipp auf eine Taste holt den Markt in die Mitte. Chart und News folgen.</p>
+        <div class="watch-block">
+          <div class="watch" id="watchlist" role="listbox" aria-label="Watchlist"></div>
+          <p class="hint">Tipp auf eine Zeile: Chart und News folgen. Steigt und sinkt ist deine Notiz, kein Kurs und keine Order.</p>
+          <p class="hint" id="quote-status">Kurse · TradingView-Scanner</p>
         </div>
 
-        <div class="card quote-card">
-          <div class="quote-head">
-            <h2 id="quote-title">Kurs</h2>
-            <span class="badge-feed">TradingView · Live</span>
+        <div class="card week-card">
+          <div class="kalender-head">
+            <h2>Diese Woche</h2>
+            <span class="badge-quiet">Hoch</span>
           </div>
-          <p class="hint disclaimer">Nur Anzeige. Keine Order, keine Empfehlung.</p>
-          <div id="tape-wrap" class="tape-wrap">
-            <div id="tv-tape" class="tradingview-widget-container tape-tv">
-              <div class="tradingview-widget-container__widget"></div>
-            </div>
-          </div>
-          <div id="quote-widget-wrap" class="quote-widget-wrap">
-            <div id="quote-fallback" class="quote-fallback" hidden>
-              <p class="chart-fallback-title">Kurs offline</p>
-              <p class="hint">Kein Netz — der Live-Kurs braucht eine Verbindung. Später erneut öffnen.</p>
-            </div>
-            <div id="tv-quote" class="tradingview-widget-container quote-tv" hidden>
-              <div class="tradingview-widget-container__widget"></div>
-              <div class="tradingview-widget-copyright">
-                <a id="quote-credit" href="https://www.tradingview.com/symbols/EURUSD/?exchange=FX" rel="noopener nofollow" target="_blank">
-                  <span class="blue-text" id="quote-credit-name">EURUSD</span>
-                </a> by TradingView
-              </div>
-            </div>
-          </div>
-          <p class="hint" id="quote-updated">Live via TradingView</p>
+          <p class="hint">Nur hohe Wichtigkeit · Name, Tag und Zeit · Europe/Zurich</p>
+          <ul class="event-list" id="week-events"></ul>
+          <p class="hint" id="week-events-source">Kalender wird geladen…</p>
         </div>
 
         <div class="card radar-card">

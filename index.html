@@ -11,7 +11,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="styles.css?v=13" />
+  <link rel="stylesheet" href="styles.css?v=14" />
 </head>
 <body>
   <div class="app">
@@ -30,7 +30,7 @@
       <section id="view-desk" class="view active" data-view="desk" aria-label="Desk">
         <div class="world" id="world-clocks" aria-label="Weltzeiten">
           <div class="world-item home" data-zone="Europe/Zurich">
-            <span class="world-city">Zürich</span>
+            <span class="world-city">Bern</span>
             <span class="world-hm">--:--</span>
             <span class="world-date"></span>
           </div>
@@ -52,7 +52,7 @@
         </div>
 
         <div class="card clock-card">
-          <p class="label">Heute · Europe/Zurich</p>
+          <p class="label">Heute · Berner Zeit</p>
           <p id="desk-date" class="date-line">—</p>
           <p class="clock-face" aria-live="polite">
             <span id="clock-hm">--:--</span><span id="clock-colon" class="colon">:</span><span id="clock-sec" class="sec">--</span>
@@ -92,7 +92,7 @@
             <h2>Diese Woche</h2>
             <span class="badge-quiet">Hoch</span>
           </div>
-          <p class="hint">Nur hohe Wichtigkeit · Name, Tag und Zeit · Europe/Zurich</p>
+          <p class="hint">Nur hohe Wichtigkeit · Name, Tag und Zeit · Berner Zeit</p>
           <ul class="event-list" id="week-events"></ul>
           <p class="hint" id="week-events-source">Kalender wird geladen…</p>
         </div>
@@ -181,7 +181,7 @@
           <h3 class="inflation-sub">Die Inflationsraten der Top-G20</h3>
           <ol id="inflation-list" class="inflation-list"></ol>
           <p id="inflation-status" class="hint" hidden></p>
-          <p class="hint">Letzter Wert je Reihe, Europe/Zurich. Die EU hat keine öffentliche Datei und fehlt deshalb. Die Farbleiste setzt das Widget.</p>
+          <p class="hint">Letzter Wert je Reihe, Berner Zeit. Die EU hat keine öffentliche Datei und fehlt deshalb. Die Farbleiste setzt das Widget.</p>
           <div class="tradingview-widget-copyright">
             <a href="https://de.tradingview.com/markets/world-economy/charts-global-trends/" rel="noopener nofollow" target="_blank">
               <span class="blue-text">Globale Inflation</span>
@@ -241,6 +241,6 @@
       </button>
     </nav>
   </div>
-  <script src="app.js?v=13"></script>
+  <script src="app.js?v=14"></script>
 </body>
 </html>

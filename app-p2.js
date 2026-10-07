@@ -97,13 +97,13 @@
       const events = parseFeed(rows);
       saveCache(rows);
       applyEvents(events, { fetchedAt: new Date().toISOString(), fromCache: false });
-      setDeskSource("Optionaler FF-Feed · aktualisiert " + formatEventWhen(new Date()) + " (Europe/Zurich). Für Details: Kalender.");
+      setDeskSource("Optionaler FF-Feed · aktualisiert " + formatEventWhen(new Date()) + " (Berner Zeit). Für Details: Kalender.");
     } catch (e) {
       const cached = loadCache();
       if (cached && Array.isArray(cached.rows)) {
         applyEvents(parseFeed(cached.rows), { fetchedAt: cached.fetchedAt, fromCache: true, error: "feed" });
         const t = cached.fetchedAt ? formatEventWhen(new Date(cached.fetchedAt)) : "—";
-        setDeskSource("Optionaler Feed · Cache-Fallback, Stand " + t + " (Europe/Zurich).");
+        setDeskSource("Optionaler Feed · Cache-Fallback, Stand " + t + " (Berner Zeit).");
       } else {
         applyEvents([], { error: "feed" });
         setDeskSource("Kalender nicht erreichbar.");
@@ -132,7 +132,7 @@
       '<span class="ccy">' + escapeHtml(e.currency) + "</span>" +
       badge +
       escapeHtml(e.title) +
-      '<span class="event-meta">' + escapeHtml(formatEventWhen(e.at)) + " · Europe/Zurich</span>" +
+      '<span class="event-meta">' + escapeHtml(formatEventWhen(e.at)) + " · Berner Zeit</span>" +
       "</li>"
     );
   }
@@ -184,16 +184,16 @@
         "<li>" +
         '<span class="ccy">' + escapeHtml(e.currency) + "</span>" +
         escapeHtml(e.title) +
-        '<span class="event-meta">' + escapeHtml(formatEventWhen(e.at)) + " · Europe/Zurich</span>" +
+        '<span class="event-meta">' + escapeHtml(formatEventWhen(e.at)) + " · Berner Zeit</span>" +
         "</li>"
       )).join("");
     }
     if (!src) return;
     if (calendar.fromCache) {
       const t = calendar.fetchedAt ? formatEventWhen(new Date(calendar.fetchedAt)) : "—";
-      src.textContent = "Letzte gecachte Woche · Stand " + t + " · Europe/Zurich.";
+      src.textContent = "Letzte gecachte Woche · Stand " + t + " · Berner Zeit.";
     } else {
-      src.textContent = "Forex-Factory-Woche · nur hohe Wichtigkeit · Europe/Zurich.";
+      src.textContent = "Forex-Factory-Woche · nur hohe Wichtigkeit · Berner Zeit.";
     }
   }
 

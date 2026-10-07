@@ -284,12 +284,12 @@
   }
 
   function radarSentence(st, now) {
-    if (st.overlap) return "Overlap: London und New York sind offen. Europe/Zurich.";
-    if (st.london) return "London ist offen. New York ist zu. Europe/Zurich.";
-    if (st.ny) return "New York ist offen. London ist zu. Europe/Zurich.";
+    if (st.overlap) return "Overlap: London und New York sind offen. Berner Zeit.";
+    if (st.london) return "London ist offen. New York ist zu. Berner Zeit.";
+    if (st.ny) return "New York ist offen. London ist zu. Berner Zeit.";
     const day = zurichWeekday(now);
-    if (day === "Sat" || day === "Sun") return "Ruhig: Wochenende. London und New York sind zu. Europe/Zurich.";
-    return "Ruhig: London und New York sind zu. Europe/Zurich.";
+    if (day === "Sat" || day === "Sun") return "Ruhig: Wochenende. London und New York sind zu. Berner Zeit.";
+    return "Ruhig: London und New York sind zu. Berner Zeit.";
   }
 
   const deskDate = document.getElementById("desk-date");

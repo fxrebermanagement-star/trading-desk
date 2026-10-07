@@ -138,11 +138,11 @@
     const el = document.getElementById("quote-status");
     if (!el) return;
     if (quoteLive && quoteStamp) {
-      el.textContent = "Kurse · TradingView-Scanner · " + formatEventWhen(new Date(quoteStamp)) + " · Europe/Zurich";
+      el.textContent = "Kurse · TradingView-Scanner · " + formatEventWhen(new Date(quoteStamp)) + " · Berner Zeit";
       return;
     }
     if (quoteStamp) {
-      el.textContent = "Kurse · letzter Scanner-Stand " + formatEventWhen(new Date(quoteStamp)) + " · Europe/Zurich. Fehlende Zahl: Strich.";
+      el.textContent = "Kurse · letzter Scanner-Stand " + formatEventWhen(new Date(quoteStamp)) + " · Berner Zeit. Fehlende Zahl: Strich.";
       return;
     }
     el.textContent = "Kurse · TradingView-Scanner. Fehlende Zahl: Strich, kein geschätzter Kurs.";
